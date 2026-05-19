@@ -1,4 +1,5 @@
 # GhostNote
+Bringing visibility to your hidden work
 
 Lightweight utility for capturing hidden work quickly.
 
