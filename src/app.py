@@ -1,0 +1,354 @@
+import tkinter as tk
+from tkinter import ttk
+from PIL import Image, ImageTk
+from pathlib import Path
+from screeninfo import get_monitors
+import src.config as config
+
+
+class GhostnoteApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+
+        self.title("GhostNote")
+
+        window_width = 900
+        window_height = 650
+
+        mouse_x = self.winfo_pointerx()
+        mouse_y = self.winfo_pointery()
+
+        target_monitor = None
+
+        for monitor in get_monitors():
+            if (
+                    monitor.x <= mouse_x < monitor.x + monitor.width
+                    and monitor.y <= mouse_y < monitor.y + monitor.height
+            ):
+                target_monitor = monitor
+                break
+
+        # Fallback to primary monitor
+        if target_monitor is None:
+            target_monitor = get_monitors()[0]
+
+        # Center on monitor
+        x = target_monitor.x + (target_monitor.width - window_width) // 2
+        y = target_monitor.y + (target_monitor.height - window_height) // 2
+
+        self.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+        self.minsize(700, 450)
+
+        self.load_icon()
+        self.build_header()
+        self.build_viewer()
+
+    def build_header(self):
+        header = ttk.Frame(self, padding=(12, 10, 12, 6))
+        header.pack(fill=tk.X)
+
+        # Left brand area
+        brand_frame = ttk.Frame(header)
+        brand_frame.pack(side=tk.LEFT)
+
+        if self.icon:
+            icon_label = ttk.Label(brand_frame, image=self.icon)
+            icon_label.pack(side=tk.LEFT, padx=(0, 10))
+
+        text_frame = ttk.Frame(brand_frame)
+        text_frame.pack(side=tk.LEFT)
+
+        ttk.Label(
+            text_frame,
+            text="GhostNote",
+            font=("Segoe UI", 20, "bold")
+        ).pack(anchor="w")
+
+        ttk.Label(
+            text_frame,
+            text="Helping track your hidden work",
+            font=("Segoe UI", 9)
+        ).pack(anchor="w")
+
+        # Right button area
+        button_frame = ttk.Frame(header)
+        button_frame.pack(side=tk.RIGHT)
+
+        ttk.Button(button_frame, text="🔍 Search").pack(side=tk.LEFT, padx=4)
+        ttk.Button(button_frame, text="⏷ Filter", command=self.open_filter_modal).pack(side=tk.LEFT, padx=4)
+        ttk.Button(button_frame, text="✦ Analyze", command=self.open_ai_modal).pack(side=tk.LEFT, padx=4)
+        ttk.Button(button_frame, text="⚙ Settings", command=self.open_settings_modal).pack(side=tk.LEFT, padx=4)
+
+    def load_icon(self):
+        icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
+
+        self.window_icon_path = icon_root / "GhostNote.ico"
+        header_icon_path = icon_root / "GhostNote.png"
+
+        if self.window_icon_path.exists():
+            self.iconbitmap(self.window_icon_path)
+
+        if header_icon_path.exists():
+            image = Image.open(header_icon_path)
+            image.thumbnail((69, 49), Image.LANCZOS)
+            self.icon = ImageTk.PhotoImage(image)
+        else:
+            self.icon = None
+
+    def build_viewer(self):
+        container = ttk.Frame(self, padding=(12, 4, 12, 12))
+        container.pack(fill=tk.BOTH, expand=True)
+
+        self.markdown_view = tk.Text(
+            container,
+            wrap=tk.WORD,
+            font=("Consolas", 11),
+            padx=12,
+            pady=12
+        )
+
+        self.markdown_view.tag_configure(
+            "h1",
+            font=("Segoe UI", 22, "bold"),
+            spacing1=12,
+            spacing3=8
+        )
+
+        self.markdown_view.tag_configure(
+            "h2",
+            font=("Segoe UI", 18, "bold"),
+            spacing1=10,
+            spacing3=6
+        )
+
+        self.markdown_view.tag_configure(
+            "h3",
+            font=("Segoe UI", 14, "bold"),
+            spacing1=8,
+            spacing3=4
+        )
+
+        self.markdown_view.tag_configure(
+            "body",
+            font=("Segoe UI", 11),
+            lmargin1=10,
+            lmargin2=30,
+        )
+
+        self.markdown_view.tag_configure(
+            "bullet",
+            lmargin1=25,
+            lmargin2=100,
+            font=("Segoe UI", 11),
+        )
+
+        self.markdown_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(
+            container,
+            orient=tk.VERTICAL,
+            command=self.markdown_view.yview
+        )
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.markdown_view.configure(yscrollcommand=scrollbar.set)
+
+        self.load_markdown_file()
+
+    def load_markdown_file(self):
+        try:
+            from src.config import LOG_FILE
+
+            if LOG_FILE.exists():
+                content = LOG_FILE.read_text(encoding="utf-8")
+
+                self.markdown_view.delete("1.0", tk.END)
+                self.render_markdown(content)
+
+            else:
+                self.markdown_view.delete("1.0", tk.END)
+                self.markdown_view.insert(
+                    tk.END,
+                    f"Markdown file not found:\n\n{LOG_FILE}"
+                )
+
+        except Exception as e:
+            self.markdown_view.delete("1.0", tk.END)
+            self.markdown_view.insert(
+                tk.END,
+                f"Error loading markdown file:\n\n{e}"
+            )
+
+    def render_markdown(self, content):
+        self.markdown_view.delete("1.0", tk.END)
+
+        lines = content.splitlines()
+
+        for line in lines:
+
+            stripped = line.strip()
+
+            if stripped.startswith("### "):
+                text = stripped[4:] + "\n"
+                self.markdown_view.insert(tk.END, text, "h3")
+
+            elif stripped.startswith("## "):
+                text = stripped[3:] + "\n"
+                self.markdown_view.insert(tk.END, text, "h2")
+
+            elif stripped.startswith("# "):
+                text = stripped[2:] + "\n"
+                self.markdown_view.insert(tk.END, text, "h1")
+
+            elif stripped.startswith("- "):
+                text = "• " + stripped[2:] + "\n"
+                self.markdown_view.insert(tk.END, text, "bullet")
+
+            else:
+                self.markdown_view.insert(tk.END, line + "\n", "body")
+
+    def open_settings_modal(self):
+        modal = tk.Toplevel(self)
+        modal.title("Settings")
+        modal_width = 600
+        modal_height = 300
+        modal.iconbitmap(self.window_icon_path)
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+
+        ttk.Label(
+            modal,
+            text="Settings",
+            font=("Segoe UI", 40, "bold")
+        ).pack(pady=(20, 10))
+
+        settings_frame = ttk.Frame(modal, padding=12)
+        settings_frame.pack(fill=tk.BOTH, expand=True)
+
+        settings = {
+            name: value
+            for name, value in vars(config).items()
+            if name.isupper()
+        }
+
+        for row, (name, value) in enumerate(settings.items()):
+            ttk.Label(
+                settings_frame,
+                text=name,
+                font=("Segoe UI", 10, "bold")
+            ).grid(row=row, column=0, sticky="ne", padx=(0, 12), pady=4)
+
+            ttk.Label(
+                settings_frame,
+                text=str(":")
+            ).grid(row=row, column=1, sticky="ew", pady=4)
+
+            value_box = ttk.Entry(
+                settings_frame,
+                width=50
+            )
+
+            value_box.insert(0, str(value))
+
+            value_box.grid(
+                row=row,
+                column=2,
+                sticky="ew",
+                pady=4
+            )
+
+        settings_frame.columnconfigure(2, weight=1)
+
+        ttk.Button(
+            modal,
+            text="Close",
+            command=modal.destroy
+        ).pack(pady=20)
+
+    def open_ai_modal(self):
+        modal = tk.Toplevel(self)
+        modal.title("Ai Analyze")
+        modal_width = 400
+        modal_height = 300
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+
+        ttk.Label(
+            modal,
+            text="Ai Analyze",
+            font=("Segoe UI", 16, "bold")
+        ).pack(pady=(20, 10))
+
+        ttk.Label(
+            modal,
+            text="Ai controls will go here."
+        ).pack(pady=10)
+
+        ttk.Button(
+            modal,
+            text="Close",
+            command=modal.destroy
+        ).pack(pady=20)
+
+    def open_filter_modal(self):
+        modal = tk.Toplevel(self)
+        modal.title("Filter GhostNote")
+        modal_width = 400
+        modal_height = 300
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+
+        ttk.Label(
+            modal,
+            text="Filter GhostNote",
+            font=("Segoe UI", 16, "bold")
+        ).pack(pady=(20, 10))
+
+        ttk.Label(
+            modal,
+            text="Filter will go here."
+        ).pack(pady=10)
+
+        ttk.Button(
+            modal,
+            text="Close",
+            command=modal.destroy
+        ).pack(pady=20)
+
+if __name__ == "__main__":
+    app = GhostnoteApp()
+    app.mainloop()
