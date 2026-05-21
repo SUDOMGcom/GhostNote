@@ -43,6 +43,31 @@ class GhostnoteApp(tk.Tk):
         self.load_icon()
         self.build_header()
         self.build_viewer()
+        self.apply_theme()
+
+    def apply_theme(self):
+        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+
+        self.configure(bg=theme["bg"])
+
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        style.configure("TFrame", background=theme["bg"])
+        style.configure("TLabel", background=theme["bg"], foreground=theme["text"])
+        style.configure("TButton", background=theme["panel"], foreground=theme["text"])
+        style.map("TButton", background=[("active", theme["entry_bg"])], foreground=[("active", theme["text"])])
+        style.configure("TRadiobutton", background=theme["bg"], foreground=theme["text"])
+        style.map("TRadiobutton", background=[("active", theme["bg"])], foreground=[("active", theme["text"])])
+        style.configure("TEntry", fieldbackground=theme["entry_bg"], foreground=theme["entry_fg"])
+        style.map("TEntry", fieldbackground=[("!disabled", theme["entry_bg"])])
+
+        self.markdown_view.configure(bg=theme["panel"], fg=theme["text"], insertbackground=theme["text"])
+        self.markdown_view.tag_configure("h1", foreground=theme["text"])
+        self.markdown_view.tag_configure("h2", foreground=theme["text"])
+        self.markdown_view.tag_configure("h3", foreground=theme["text"])
+        self.markdown_view.tag_configure("body", foreground=theme["text"])
+        self.markdown_view.tag_configure("bullet", foreground=theme["text"])
 
     def build_header(self):
         header = ttk.Frame(self, padding=(12, 10, 12, 6))
@@ -59,17 +84,8 @@ class GhostnoteApp(tk.Tk):
         text_frame = ttk.Frame(brand_frame)
         text_frame.pack(side=tk.LEFT)
 
-        ttk.Label(
-            text_frame,
-            text="GhostNote",
-            font=("Segoe UI", 20, "bold")
-        ).pack(anchor="w")
-
-        ttk.Label(
-            text_frame,
-            text="Helping track your hidden work",
-            font=("Segoe UI", 9)
-        ).pack(anchor="w")
+        ttk.Label(text_frame, text="GhostNote", font=("Segoe UI", 20, "bold")).pack(anchor="w")
+        ttk.Label(text_frame, text="Helping track your hidden work", font=("Segoe UI", 9)).pack(anchor="w")
 
         # Right button area
         button_frame = ttk.Frame(header)
@@ -100,56 +116,15 @@ class GhostnoteApp(tk.Tk):
         container = ttk.Frame(self, padding=(12, 4, 12, 12))
         container.pack(fill=tk.BOTH, expand=True)
 
-        self.markdown_view = tk.Text(
-            container,
-            wrap=tk.WORD,
-            font=("Consolas", 11),
-            padx=12,
-            pady=12
-        )
-
-        self.markdown_view.tag_configure(
-            "h1",
-            font=("Segoe UI", 22, "bold"),
-            spacing1=12,
-            spacing3=8
-        )
-
-        self.markdown_view.tag_configure(
-            "h2",
-            font=("Segoe UI", 18, "bold"),
-            spacing1=10,
-            spacing3=6
-        )
-
-        self.markdown_view.tag_configure(
-            "h3",
-            font=("Segoe UI", 14, "bold"),
-            spacing1=8,
-            spacing3=4
-        )
-
-        self.markdown_view.tag_configure(
-            "body",
-            font=("Segoe UI", 11),
-            lmargin1=10,
-            lmargin2=30,
-        )
-
-        self.markdown_view.tag_configure(
-            "bullet",
-            lmargin1=25,
-            lmargin2=100,
-            font=("Segoe UI", 11),
-        )
-
+        self.markdown_view = tk.Text(container, wrap=tk.WORD, font=("Consolas", 11), padx=12, pady=12)
+        self.markdown_view.tag_configure("h1", font=("Segoe UI", 22, "bold"), spacing1=12, spacing3=8)
+        self.markdown_view.tag_configure("h2", font=("Segoe UI", 18, "bold"), spacing1=10, spacing3=6)
+        self.markdown_view.tag_configure("h3", font=("Segoe UI", 14, "bold"), spacing1=8, spacing3=4)
+        self.markdown_view.tag_configure("body", font=("Segoe UI", 11), lmargin1=10, lmargin2=30)
+        self.markdown_view.tag_configure("bullet", lmargin1=25, lmargin2=105, font=("Segoe UI", 11))
         self.markdown_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        scrollbar = ttk.Scrollbar(
-            container,
-            orient=tk.VERTICAL,
-            command=self.markdown_view.yview
-        )
+        scrollbar = ttk.Scrollbar(container, orient=tk.VERTICAL, command=self.markdown_view.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.markdown_view.configure(yscrollcommand=scrollbar.set)
@@ -211,6 +186,8 @@ class GhostnoteApp(tk.Tk):
 
     def open_settings_modal(self):
         modal = tk.Toplevel(self)
+        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+        modal.configure(bg=theme["bg"])
         modal.title("Settings")
         modal_width = 600
         modal_height = 300
@@ -238,48 +215,51 @@ class GhostnoteApp(tk.Tk):
         settings_frame = ttk.Frame(modal, padding=12)
         settings_frame.pack(fill=tk.BOTH, expand=True)
 
-        settings = {
-            name: value
-            for name, value in vars(config).items()
-            if name.isupper()
-        }
+        settings = config.load_settings()
 
-        for row, (name, value) in enumerate(settings.items()):
-            ttk.Label(
-                settings_frame,
-                text=name,
-                font=("Segoe UI", 10, "bold")
-            ).grid(row=row, column=0, sticky="ne", padx=(0, 12), pady=4)
+        app_folder_var = tk.StringVar(value=settings["app_folder"])
+        log_file_var = tk.StringVar(value=settings["log_file"])
+        theme_var = tk.StringVar(value=settings["theme"])
 
-            ttk.Label(
-                settings_frame,
-                text=str(":")
-            ).grid(row=row, column=1, sticky="ew", pady=4)
+        # APP FOLDER
+        ttk.Label(settings_frame, text="APP_FOLDER", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", padx=(0, 12), pady=4)
+        ttk.Entry(settings_frame, textvariable=app_folder_var, width=50).grid(row=0, column=1, sticky="ew", pady=4)
 
-            value_box = ttk.Entry(
-                settings_frame,
-                width=50
-            )
+        # LOG FILE
+        ttk.Label(settings_frame, text="LOG_FILE", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="w", padx=(0, 12), pady=4)
+        ttk.Entry(settings_frame, textvariable=log_file_var, width=50).grid(row=1, column=1, sticky="ew", pady=4)
 
-            value_box.insert(0, str(value))
+        # THEME
+        ttk.Label(settings_frame, text="THEME", font=("Segoe UI", 10, "bold")).grid(row=2, column=0, sticky="w", padx=(0, 12), pady=4)
+        theme_button_frame = ttk.Frame(settings_frame)
+        theme_button_frame.grid(row=2, column=1, sticky="w")
+        ttk.Radiobutton(theme_button_frame, text="Light", variable=theme_var, value="light").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
 
-            value_box.grid(
-                row=row,
-                column=2,
-                sticky="ew",
-                pady=4
-            )
+        settings_frame.columnconfigure(1, weight=1)
+
+        def save_and_close():
+            settings["app_folder"] = app_folder_var.get().strip()
+            settings["log_file"] = log_file_var.get().strip()
+            settings["theme"] = theme_var.get()
+
+            config.save_settings(settings)
+            config.SETTINGS = config.load_settings()
+            config.APP_FOLDER = Path(config.SETTINGS["app_folder"])
+            config.LOG_FILE = Path(config.SETTINGS["log_file"])
+            config.THEME = config.SETTINGS["theme"]
+
+            self.apply_theme()
+            modal.destroy()
 
         settings_frame.columnconfigure(2, weight=1)
 
-        ttk.Button(
-            modal,
-            text="Close",
-            command=modal.destroy
-        ).pack(pady=20)
+        ttk.Button(modal, text="Save", command=save_and_close).pack(pady=20)
 
     def open_ai_modal(self):
         modal = tk.Toplevel(self)
+        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+        modal.configure(bg=theme["bg"])
         modal.title("Ai Analyze")
         modal_width = 400
         modal_height = 300
@@ -297,25 +277,14 @@ class GhostnoteApp(tk.Tk):
         modal.transient(self)
         modal.grab_set()
 
-        ttk.Label(
-            modal,
-            text="Ai Analyze",
-            font=("Segoe UI", 16, "bold")
-        ).pack(pady=(20, 10))
-
-        ttk.Label(
-            modal,
-            text="Ai controls will go here."
-        ).pack(pady=10)
-
-        ttk.Button(
-            modal,
-            text="Close",
-            command=modal.destroy
-        ).pack(pady=20)
+        ttk.Label(modal, text="Ai Analyze", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
+        ttk.Label(modal, text="Ai controls will go here.").pack(pady=10)
+        ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
 
     def open_filter_modal(self):
         modal = tk.Toplevel(self)
+        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+        modal.configure(bg=theme["bg"])
         modal.title("Filter GhostNote")
         modal_width = 400
         modal_height = 300
@@ -333,22 +302,9 @@ class GhostnoteApp(tk.Tk):
         modal.transient(self)
         modal.grab_set()
 
-        ttk.Label(
-            modal,
-            text="Filter GhostNote",
-            font=("Segoe UI", 16, "bold")
-        ).pack(pady=(20, 10))
-
-        ttk.Label(
-            modal,
-            text="Filter will go here."
-        ).pack(pady=10)
-
-        ttk.Button(
-            modal,
-            text="Close",
-            command=modal.destroy
-        ).pack(pady=20)
+        ttk.Label(modal, text="Filter GhostNote", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
+        ttk.Label(modal, text="Filter will go here.").pack(pady=10)
+        ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
 
 if __name__ == "__main__":
     app = GhostnoteApp()

@@ -1,5 +1,6 @@
-import tkinter as tk
 from pathlib import Path
+import tkinter as tk
+import src.config as config
 from PIL import Image, ImageTk
 
 class PromptWindow:
@@ -7,6 +8,10 @@ class PromptWindow:
         self.on_submit = on_submit
 
         self.root = tk.Tk()
+        theme = config.THEMES.get(
+            config.THEME,
+            config.THEMES["dark"]
+        )
 
         icon_path = Path(__file__).resolve().parents[2] / "assets" / "icons" / "GhostNote.png"
 
@@ -22,6 +27,7 @@ class PromptWindow:
             self.icon = ImageTk.PhotoImage(image)
 
         self.root.title("Add GhostNote")
+        self.root.configure(bg=theme["bg"])
 
         # Small utility-style popup
         window_width = 500
@@ -42,28 +48,28 @@ class PromptWindow:
         self.root.attributes("-topmost", True)
 
         # Main content frame
-        frame = tk.Frame(self.root, padx=10, pady=10)
+        frame = tk.Frame(self.root, padx=10, pady=10, bg=theme["bg"])
         frame.pack(fill="both", expand=True)
 
         # Left side - icon
-        icon_frame = tk.Frame(frame)
+        icon_frame = tk.Frame(frame, bg=theme["bg"])
         icon_frame.pack(side="left", padx=(0, 10), anchor="n")
 
         # Show icon inside window
         if icon_path.exists():
-            image_label = tk.Label(icon_frame, image=self.icon)
+            image_label = tk.Label(icon_frame, image=self.icon, bg=theme["bg"])
             image_label.pack(anchor="n", pady=(2, 0))
 
         # Right side - text content
-        content_frame = tk.Frame(frame)
+        content_frame = tk.Frame(frame, bg=theme["bg"])
         content_frame.pack(side="left", fill="both", expand=True)
 
         # Label
-        label = tk.Label(content_frame, text="What did you do?")
+        label = tk.Label(content_frame, text="What did you do?", bg=theme["bg"], fg=theme["text"])
         label.pack(anchor="w")
 
         # Text entry
-        self.entry = tk.Entry(content_frame, font=("Segoe UI", 12))
+        self.entry = tk.Entry(content_frame, font=("Segoe UI", 12),bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["text"])
         self.entry.pack(fill="x", pady=(5, 0))
 
         # Auto-focus typing cursor
