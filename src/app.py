@@ -61,6 +61,8 @@ class GhostnoteApp(tk.Tk):
         style.map("TRadiobutton", background=[("active", theme["bg"])], foreground=[("active", theme["text"])])
         style.configure("TEntry", fieldbackground=theme["entry_bg"], foreground=theme["entry_fg"])
         style.map("TEntry", fieldbackground=[("!disabled", theme["entry_bg"])])
+        style.configure("Vertical.TScrollbar", background=theme["panel"], troughcolor=theme["bg"], arrowcolor=theme["text"])
+        style.map("Vertical.TScrollbar", background=[("active", theme["entry_bg"])])
 
         self.markdown_view.configure(bg=theme["panel"], fg=theme["text"], insertbackground=theme["text"])
         self.markdown_view.tag_configure("h1", foreground=theme["text"])
