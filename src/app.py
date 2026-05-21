@@ -165,6 +165,7 @@ class GhostnoteApp(tk.Tk):
 
                 self.markdown_view.delete("1.0", tk.END)
                 self.render_markdown(content)
+                self.after(10, lambda: self.markdown_view.see(tk.END))
 
             else:
                 self.markdown_view.delete("1.0", tk.END)
