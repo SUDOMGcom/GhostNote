@@ -55,8 +55,8 @@ class GhostnoteApp(tk.Tk):
 
         style.configure("TFrame", background=theme["bg"])
         style.configure("TLabel", background=theme["bg"], foreground=theme["text"])
-        style.configure("TButton", background=theme["panel"], foreground=theme["text"])
-        style.map("TButton", background=[("active", theme["entry_bg"])], foreground=[("active", theme["text"])])
+        style.configure("TButton", background=theme["button_bg"], foreground=theme["button_fg"], padding=(10, 6), borderwidth=0)
+        style.map("TButton", background=[("active", theme["button_hover"]), ("pressed", theme["button_pressed"]), ("disabled", theme["button_disabled"])], foreground=[("active", theme["button_fg"]), ("pressed", theme["button_fg"]), ("disabled", theme["button_disabled_fg"])])
         style.configure("TRadiobutton", background=theme["bg"], foreground=theme["text"])
         style.map("TRadiobutton", background=[("active", theme["bg"])], foreground=[("active", theme["text"])])
         style.configure("TEntry", fieldbackground=theme["entry_bg"], foreground=theme["entry_fg"])

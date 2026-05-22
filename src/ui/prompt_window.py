@@ -65,12 +65,27 @@ class PromptWindow:
         content_frame.pack(side="left", fill="both", expand=True)
 
         # Label
-        label = tk.Label(content_frame, text="What did you do?", bg=theme["bg"], fg=theme["text"])
+        label = tk.Label(content_frame, text="What did you do?", bg=theme["bg"], fg=theme["text"], font=("TkDefaultFont", 10, "bold"))
         label.pack(anchor="w")
 
         # Text entry
-        self.entry = tk.Entry(content_frame, font=("Segoe UI", 12),bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["text"])
-        self.entry.pack(fill="x", pady=(5, 0))
+        entry_border = tk.Frame(content_frame, bg=theme["border"])
+        entry_border.pack(fill="x", pady=(5, 0))
+
+        entry_wrap = tk.Frame(entry_border, bg=theme["entry_bg"])
+        entry_wrap.pack(fill="x", padx=1, pady=1)
+
+        self.entry = tk.Entry(
+            entry_wrap,
+            font=("Segoe UI", 12),
+            bg=theme["entry_bg"],
+            fg=theme["entry_fg"],
+            insertbackground=theme["text"],
+            relief="flat",
+            bd=0,
+        )
+
+        self.entry.pack(fill="x", padx=8, pady=4)
 
         # Auto-focus typing cursor
         self.entry.focus()

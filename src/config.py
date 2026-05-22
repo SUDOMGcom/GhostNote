@@ -12,20 +12,42 @@ DEFAULT_SETTINGS = {
 
 THEMES = {
     "light": {
-        "bg": "#f5f5f5",
-        "panel": "#ffffff",
-        "text": "#1f1f1f",
-        "muted": "#666666",
-        "entry_bg": "#ffffff",
-        "entry_fg": "#1f1f1f"
+        "bg": "#eef2f6",
+        "panel": "#f8fafc",
+        "text": "#1e293b",
+        "muted": "#64748b",
+        "entry_bg": "#e9eef7",
+        "entry_fg": "#0f172a",
+
+        "button_bg": "#4f7a65",
+        "button_fg": "#ffffff",
+        "button_hover": "#5c8b74",
+        "button_pressed": "#436756",
+        "button_disabled": "#cbd5e1",
+        "button_disabled_fg": "#94a3b8",
+
+        "border": "#d6deeb",
+        "focus": "#7aa2ff",
+        "selection": "#cfe0ff"
     },
     "dark": {
-        "bg": "#1e1e1e",
-        "panel": "#2b2b2b",
-        "text": "#f2f2f2",
-        "muted": "#b0b0b0",
-        "entry_bg": "#252526",
-        "entry_fg": "#f2f2f2"
+        "bg": "#0f1117",
+        "panel": "#1a1f2b",
+        "text": "#e8ecf3",
+        "muted": "#94a3b8",
+        "entry_bg": "#232938",
+        "entry_fg": "#f8fafc",
+
+        "button_bg": "#166534",
+        "button_fg": "#f8fafc",
+        "button_hover": "#1f7a3f",
+        "button_pressed": "#14532d",
+        "button_disabled": "#2a3142",
+        "button_disabled_fg": "#6b7280",
+
+        "border": "#2c3444",
+        "focus": "#7aa2ff",
+        "selection": "#2f4b7c"
     }
 }
 
