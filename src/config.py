@@ -19,6 +19,10 @@ THEMES = {
         "entry_bg": "#e9eef7",
         "entry_fg": "#0f172a",
 
+        "title_outline": "#70747A",
+        "title_ghost": "#FFFFFF",
+        "title_note": "#B8BCC2",
+
         "button_bg": "#4f7a65",
         "button_fg": "#ffffff",
         "button_hover": "#5c8b74",
@@ -26,7 +30,7 @@ THEMES = {
         "button_disabled": "#cbd5e1",
         "button_disabled_fg": "#94a3b8",
 
-        "border": "#d6deeb",
+        "border": "#8A8F96",
         "focus": "#7aa2ff",
         "selection": "#cfe0ff"
     },
@@ -37,6 +41,10 @@ THEMES = {
         "muted": "#94a3b8",
         "entry_bg": "#232938",
         "entry_fg": "#f8fafc",
+
+        "title_outline": "#70747A",
+        "title_ghost": "#FFFFFF",
+        "title_note": "#B8BCC2",
 
         "button_bg": "#166534",
         "button_fg": "#f8fafc",

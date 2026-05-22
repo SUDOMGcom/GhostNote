@@ -90,6 +90,10 @@ class PromptWindow:
         # Auto-focus typing cursor
         self.entry.focus()
 
+        # Fade in effect
+        self.root.attributes("-alpha", 0.0)
+        self.root.after(10, self.fade_in)
+
         # Press Enter to submit
         self.entry.bind("<Return>", self.submit)
         
@@ -106,3 +110,12 @@ class PromptWindow:
 
     def run(self):
         self.root.mainloop()
+
+    def fade_in(self, alpha=0.0):
+        alpha += 0.10
+        if alpha >= 1.0:
+            self.root.attributes("-alpha", 1.0)
+            return
+
+        self.root.attributes("-alpha", alpha)
+        self.root.after(12, lambda: self.fade_in(alpha))

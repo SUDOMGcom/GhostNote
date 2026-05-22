@@ -10,6 +10,7 @@ class GhostnoteApp(tk.Tk):
     def __init__(self):
         super().__init__()
 
+        self.attributes("-alpha", 0.0)
         self.title("GhostNote")
 
         window_width = 900
@@ -44,6 +45,7 @@ class GhostnoteApp(tk.Tk):
         self.build_header()
         self.build_viewer()
         self.apply_theme()
+        self.after(10, self.fade_in)
 
     def apply_theme(self):
         theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
@@ -52,6 +54,12 @@ class GhostnoteApp(tk.Tk):
 
         style = ttk.Style()
         style.theme_use("clam")
+
+        if hasattr(self, "title_frame"):
+            self.title_frame.configure(bg=theme["bg"])
+
+        if hasattr(self, "title_canvas"):
+            self.title_canvas.configure(bg=theme["bg"])
 
         style.configure("TFrame", background=theme["bg"])
         style.configure("TLabel", background=theme["bg"], foreground=theme["text"])
@@ -71,7 +79,18 @@ class GhostnoteApp(tk.Tk):
         self.markdown_view.tag_configure("body", foreground=theme["text"])
         self.markdown_view.tag_configure("bullet", foreground=theme["text"])
 
+    def fade_in(self, alpha=0.0):
+        alpha += 0.05
+
+        if alpha >= 1.0:
+            self.attributes("-alpha", 1.0)
+            return
+
+        self.attributes("-alpha", alpha)
+        self.after(12, lambda: self.fade_in(alpha))
+
     def build_header(self):
+        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
         header = ttk.Frame(self, padding=(12, 10, 12, 6))
         header.pack(fill=tk.X)
 
@@ -81,12 +100,24 @@ class GhostnoteApp(tk.Tk):
 
         if self.icon:
             icon_label = ttk.Label(brand_frame, image=self.icon)
-            icon_label.pack(side=tk.LEFT, padx=(0, 10))
+            icon_label.pack(side=tk.LEFT, padx=(0, 4))
 
         text_frame = ttk.Frame(brand_frame)
         text_frame.pack(side=tk.LEFT)
 
-        ttk.Label(text_frame, text="GhostNote", font=("Segoe UI", 20, "bold")).pack(anchor="w")
+        self.title_frame = tk.Frame(text_frame, bg=theme["bg"])
+        self.title_frame.pack(anchor="w")
+
+        self.title_canvas = tk.Canvas(self.title_frame, bg=theme["bg"], highlightthickness=0, bd=0, width=185, height=42)
+        self.title_canvas.pack(anchor="w")
+
+        font = ("Segoe UI", 22, "bold")
+        for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (0, -2), (0, 2), (1, -1), (1, 0), (1, 1)]:
+            self.title_canvas.create_text(0 + dx, 25 + dy, text="Ghost", font=font, fill=theme["title_outline"], anchor="w")
+            self.title_canvas.create_text(80 + dx, 25 + dy, text="Note", font=font, fill=theme["title_outline"], anchor="w")
+
+        self.title_canvas.create_text(0, 25, text="Ghost", font=font, fill=theme["title_ghost"], anchor="w")
+        self.title_canvas.create_text(80, 25, text="Note", font=font, fill=theme["title_note"], anchor="w")
         ttk.Label(text_frame, text="Helping track your hidden work", font=("Segoe UI", 9)).pack(anchor="w")
 
         # Right button area
