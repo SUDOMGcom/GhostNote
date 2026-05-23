@@ -78,6 +78,8 @@ def save_settings(settings):
     with SETTINGS_FILE.open("w", encoding="utf-8") as file:
         json.dump(settings, file, indent=4)
 
+def get_theme():
+    return THEMES.get(THEME, THEMES["dark"])
 
 SETTINGS = load_settings()
 

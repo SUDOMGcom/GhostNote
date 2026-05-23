@@ -1,3 +1,6 @@
+import ctypes
+ctypes.windll.shcore.SetProcessDpiAwareness(1)
+
 from pathlib import Path
 import tkinter as tk
 import src.config as config
@@ -8,17 +11,14 @@ class PromptWindow:
         self.on_submit = on_submit
 
         self.root = tk.Tk()
-        theme = config.THEMES.get(
-            config.THEME,
-            config.THEMES["dark"]
-        )
+        theme = config.get_theme()
 
         icon_path = Path(__file__).resolve().parents[2] / "assets" / "icons" / "GhostNote.png"
 
         if icon_path.exists():
             # Window icon
-            window_icon = tk.PhotoImage(file=icon_path)
-            self.root.iconphoto(True, window_icon)
+            self.window_icon = tk.PhotoImage(file=icon_path)
+            self.root.iconphoto(True, self.window_icon)
 
             # Resize display image
             image = Image.open(icon_path)
@@ -39,9 +39,7 @@ class PromptWindow:
         offset_x = 10
         offset_y = -20
 
-        self.root.geometry(
-            f"{window_width}x{window_height}+{mouse_x + offset_x}+{mouse_y + offset_y}"
-        )      
+        self.root.geometry(f"{window_width}x{window_height}+{mouse_x + offset_x}+{mouse_y + offset_y}")
         self.root.resizable(False, False)
 
         # Keep window on top
@@ -65,7 +63,7 @@ class PromptWindow:
         content_frame.pack(side="left", fill="both", expand=True)
 
         # Label
-        label = tk.Label(content_frame, text="What did you do?", bg=theme["bg"], fg=theme["text"], font=("TkDefaultFont", 10, "bold"))
+        label = tk.Label(content_frame, text="What are you working on?", bg=theme["bg"], fg=theme["text"], font=("TkDefaultFont", 10, "bold"))
         label.pack(anchor="w")
 
         # Text entry

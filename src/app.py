@@ -48,7 +48,7 @@ class GhostnoteApp(tk.Tk):
         self.after(10, self.fade_in)
 
     def apply_theme(self):
-        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+        theme = config.get_theme()
 
         self.configure(bg=theme["bg"])
 
@@ -90,7 +90,7 @@ class GhostnoteApp(tk.Tk):
         self.after(12, lambda: self.fade_in(alpha))
 
     def build_header(self):
-        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+        theme = config.get_theme()
         header = ttk.Frame(self, padding=(12, 10, 12, 6))
         header.pack(fill=tk.X)
 
@@ -219,7 +219,7 @@ class GhostnoteApp(tk.Tk):
 
     def open_settings_modal(self):
         modal = tk.Toplevel(self)
-        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+        theme = config.get_theme()
         modal.configure(bg=theme["bg"])
         modal.title("Settings")
         modal_width = 600
@@ -291,7 +291,7 @@ class GhostnoteApp(tk.Tk):
 
     def open_ai_modal(self):
         modal = tk.Toplevel(self)
-        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+        theme = config.get_theme()
         modal.configure(bg=theme["bg"])
         modal.title("Ai Analyze")
         modal_width = 400
@@ -316,7 +316,7 @@ class GhostnoteApp(tk.Tk):
 
     def open_filter_modal(self):
         modal = tk.Toplevel(self)
-        theme = config.THEMES.get(config.THEME, config.THEMES["dark"])
+        theme = config.get_theme()
         modal.configure(bg=theme["bg"])
         modal.title("Filter GhostNote")
         modal_width = 400
