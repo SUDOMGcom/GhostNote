@@ -213,6 +213,8 @@ class GhostnoteApp(tk.Tk):
 
     def open_settings_modal(self):
         modal = tk.Toplevel(self)
+        modal.withdraw()
+
         theme = config.get_theme()
         modal.configure(bg=theme["bg"])
         modal.title("Settings")
@@ -278,6 +280,7 @@ class GhostnoteApp(tk.Tk):
         settings_frame.columnconfigure(2, weight=1)
 
         ttk.Button(modal, text="Save", command=save_and_close).pack(pady=20)
+        modal.deiconify()
 
     def open_ai_modal(self):
         modal = tk.Toplevel(self)
