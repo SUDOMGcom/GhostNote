@@ -154,7 +154,7 @@ class GhostnoteApp(tk.Tk):
         self.markdown_view.tag_configure("h2", font=("Segoe UI", 18, "bold"), spacing1=10, spacing3=6)
         self.markdown_view.tag_configure("h3", font=("Segoe UI", 14, "bold"), spacing1=8, spacing3=4)
         self.markdown_view.tag_configure("body", font=("Segoe UI", 11), lmargin1=10, lmargin2=30)
-        self.markdown_view.tag_configure("bullet", lmargin1=25, lmargin2=105, font=("Segoe UI", 11))
+        self.markdown_view.tag_configure("bullet", lmargin1=25, lmargin2=115, font=("Segoe UI", 11))
         self.markdown_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         scrollbar = ttk.Scrollbar(container, orient=tk.VERTICAL, command=self.markdown_view.yview)
@@ -177,43 +177,37 @@ class GhostnoteApp(tk.Tk):
 
             else:
                 self.markdown_view.delete("1.0", tk.END)
-                self.markdown_view.insert(
-                    tk.END,
-                    f"Markdown file not found:\n\n{LOG_FILE}"
-                )
+                self.markdown_view.insert(tk.END, f"Markdown file not found:\n\n{LOG_FILE}")
 
         except Exception as e:
             self.markdown_view.delete("1.0", tk.END)
-            self.markdown_view.insert(
-                tk.END,
-                f"Error loading markdown file:\n\n{e}"
-            )
+            self.markdown_view.insert(tk.END, f"Error loading markdown file:\n\n{e}")
 
     def render_markdown(self, content):
         self.markdown_view.delete("1.0", tk.END)
+        self.markdown_view.configure(tabs=("3c",))
 
         lines = content.splitlines()
 
         for line in lines:
+
+            if " - " in line:
+                line = line.replace(" - ", ":\t", 1)
 
             stripped = line.strip()
 
             if stripped.startswith("### "):
                 text = stripped[4:] + "\n"
                 self.markdown_view.insert(tk.END, text, "h3")
-
             elif stripped.startswith("## "):
                 text = stripped[3:] + "\n"
                 self.markdown_view.insert(tk.END, text, "h2")
-
             elif stripped.startswith("# "):
                 text = stripped[2:] + "\n"
                 self.markdown_view.insert(tk.END, text, "h1")
-
             elif stripped.startswith("- "):
                 text = "• " + stripped[2:] + "\n"
                 self.markdown_view.insert(tk.END, text, "bullet")
-
             else:
                 self.markdown_view.insert(tk.END, line + "\n", "body")
 
@@ -239,11 +233,7 @@ class GhostnoteApp(tk.Tk):
         modal.transient(self)
         modal.grab_set()
 
-        ttk.Label(
-            modal,
-            text="Settings",
-            font=("Segoe UI", 40, "bold")
-        ).pack(pady=(20, 10))
+        ttk.Label(modal, text="Settings", font=("Segoe UI", 40, "bold")).pack(pady=(20, 10))
 
         settings_frame = ttk.Frame(modal, padding=12)
         settings_frame.pack(fill=tk.BOTH, expand=True)

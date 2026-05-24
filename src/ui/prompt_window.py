@@ -73,16 +73,7 @@ class PromptWindow:
         entry_wrap = tk.Frame(entry_border, bg=theme["entry_bg"])
         entry_wrap.pack(fill="x", padx=1, pady=1)
 
-        self.entry = tk.Entry(
-            entry_wrap,
-            font=("Segoe UI", 12),
-            bg=theme["entry_bg"],
-            fg=theme["entry_fg"],
-            insertbackground=theme["text"],
-            relief="flat",
-            bd=0,
-        )
-
+        self.entry = tk.Entry(entry_wrap, font=("Segoe UI", 12), bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["text"], relief="flat", bd=0)
         self.entry.pack(fill="x", padx=8, pady=4)
 
         # Auto-focus typing cursor
