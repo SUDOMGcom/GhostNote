@@ -77,7 +77,7 @@ class PromptWindow:
         self.entry.pack(fill="x", padx=8, pady=4)
 
         # Auto-focus typing cursor
-        self.entry.focus()
+        self.root.after(100, self.entry.focus_force)
 
         # Fade in effect
         self.root.attributes("-alpha", 0.0)
@@ -85,17 +85,23 @@ class PromptWindow:
 
         # Press Enter to submit
         self.entry.bind("<Return>", self.submit)
-        
-        #ESC to close without submitting
+        self.root.bind("<Return>", self.submit)
+
+        # ESC to close without submitting
         self.root.bind("<Escape>", lambda event: self.root.destroy())
 
     def submit(self, event=None):
         note_text = self.entry.get().strip()
-
-        if note_text:
-            self.on_submit(note_text)
-
         self.root.destroy()
+
+        try:
+            if note_text:
+                self.on_submit(note_text)
+
+
+
+        except Exception as e:
+            print(f"GhostNote save failed: {e}")
 
     def run(self):
         self.root.mainloop()

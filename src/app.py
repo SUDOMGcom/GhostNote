@@ -4,6 +4,8 @@ from PIL import Image, ImageTk
 from pathlib import Path
 from screeninfo import get_monitors
 import src.config as config
+from datetime import datetime
+from src.sqlite_store import get_entries
 
 
 class GhostnoteApp(tk.Tk):
@@ -72,12 +74,17 @@ class GhostnoteApp(tk.Tk):
         style.configure("Vertical.TScrollbar", background=theme["panel"], troughcolor=theme["bg"], arrowcolor=theme["text"])
         style.map("Vertical.TScrollbar", background=[("active", theme["entry_bg"])])
 
-        self.markdown_view.configure(bg=theme["panel"], fg=theme["text"], insertbackground=theme["text"])
-        self.markdown_view.tag_configure("h1", foreground=theme["text"])
-        self.markdown_view.tag_configure("h2", foreground=theme["text"])
-        self.markdown_view.tag_configure("h3", foreground=theme["text"])
-        self.markdown_view.tag_configure("body", foreground=theme["text"])
-        self.markdown_view.tag_configure("bullet", foreground=theme["text"])
+        # self.markdown_view.configure(bg=theme["panel"], fg=theme["text"], insertbackground=theme["text"])
+        # self.markdown_view.tag_configure("h1", foreground=theme["text"])
+        # self.markdown_view.tag_configure("h2", foreground=theme["text"])
+        # self.markdown_view.tag_configure("h3", foreground=theme["text"])
+        # self.markdown_view.tag_configure("body", foreground=theme["text"])
+        # self.markdown_view.tag_configure("bullet", foreground=theme["text"])
+
+        style.configure("Treeview", font=("Segoe UI", 12), rowheight=36, background=theme["panel"], fieldbackground=theme["panel"], foreground=theme["text"], borderwidth=0, relief="flat")
+        style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"), background=theme["bg"], foreground=theme["text"], borderwidth=0, relief="flat")
+        style.map("Treeview.Heading", background=[("active", theme["bg"])], foreground=[("active", theme["text"])])
+        style.map("Treeview", background=[("selected", theme["button_hover"])], foreground=[("selected", theme["button_fg"])])
 
     def fade_in(self, alpha=0.0):
         alpha += 0.05
@@ -149,67 +156,93 @@ class GhostnoteApp(tk.Tk):
         container = ttk.Frame(self, padding=(12, 4, 12, 12))
         container.pack(fill=tk.BOTH, expand=True)
 
-        self.markdown_view = tk.Text(container, wrap=tk.WORD, font=("Consolas", 11), padx=12, pady=12)
-        self.markdown_view.tag_configure("h1", font=("Segoe UI", 22, "bold"), spacing1=12, spacing3=8)
-        self.markdown_view.tag_configure("h2", font=("Segoe UI", 18, "bold"), spacing1=10, spacing3=6)
-        self.markdown_view.tag_configure("h3", font=("Segoe UI", 14, "bold"), spacing1=8, spacing3=4)
-        self.markdown_view.tag_configure("body", font=("Segoe UI", 11), lmargin1=10, lmargin2=30)
-        self.markdown_view.tag_configure("bullet", lmargin1=25, lmargin2=115, font=("Segoe UI", 11))
-        self.markdown_view.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.entry_table = ttk.Treeview(container, columns=("time", "content"), show="tree headings")
 
-        scrollbar = ttk.Scrollbar(container, orient=tk.VERTICAL, command=self.markdown_view.yview)
+        self.entry_table.heading("#0", text="Date", anchor="w")
+        self.entry_table.heading("time", text="Time", anchor="e")
+        self.entry_table.heading("content", text="Entry", anchor="w")
+
+        self.entry_table.column("#0", width=115, minwidth=115, anchor="w", stretch=False)
+        self.entry_table.column("time", width=85, minwidth=85, anchor="e", stretch=False)
+        self.entry_table.column("content", anchor="w", stretch=True)
+
+        self.entry_table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(container, orient=tk.VERTICAL, command=self.entry_table.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.markdown_view.configure(yscrollcommand=scrollbar.set)
+        self.entry_table.configure(yscrollcommand=scrollbar.set)
 
-        self.load_markdown_file()
+        self.load_entries()
 
-    def load_markdown_file(self):
-        try:
-            from src.config import LOG_FILE
+    def format_date(self, created_at):
+        return datetime.fromisoformat(created_at).strftime("%Y-%m-%d")
 
-            if LOG_FILE.exists():
-                content = LOG_FILE.read_text(encoding="utf-8")
+    def format_time(self, created_at):
+        return datetime.fromisoformat(created_at).strftime("%I:%M %p").lstrip("0")
 
-                self.markdown_view.delete("1.0", tk.END)
-                self.render_markdown(content)
-                self.after(10, lambda: self.markdown_view.see(tk.END))
+    def load_entries(self):
+        self.entry_table.delete(*self.entry_table.get_children())
 
-            else:
-                self.markdown_view.delete("1.0", tk.END)
-                self.markdown_view.insert(tk.END, f"Markdown file not found:\n\n{LOG_FILE}")
+        current_date = None
+        current_parent = None
 
-        except Exception as e:
-            self.markdown_view.delete("1.0", tk.END)
-            self.markdown_view.insert(tk.END, f"Error loading markdown file:\n\n{e}")
+        first_group = True
+        for entry in get_entries():
+            entry_date = self.format_date(entry["created_at"])
 
-    def render_markdown(self, content):
-        self.markdown_view.delete("1.0", tk.END)
-        self.markdown_view.configure(tabs=("3c",))
+            if entry_date != current_date:
+                current_date = entry_date
+                current_parent = self.entry_table.insert("", "end", text=entry_date, values=("", ""), open=first_group)
+                first_group = False
 
-        lines = content.splitlines()
-
-        for line in lines:
-
-            if " - " in line:
-                line = line.replace(" - ", ":\t", 1)
-
-            stripped = line.strip()
-
-            if stripped.startswith("### "):
-                text = stripped[4:] + "\n"
-                self.markdown_view.insert(tk.END, text, "h3")
-            elif stripped.startswith("## "):
-                text = stripped[3:] + "\n"
-                self.markdown_view.insert(tk.END, text, "h2")
-            elif stripped.startswith("# "):
-                text = stripped[2:] + "\n"
-                self.markdown_view.insert(tk.END, text, "h1")
-            elif stripped.startswith("- "):
-                text = "• " + stripped[2:] + "\n"
-                self.markdown_view.insert(tk.END, text, "bullet")
-            else:
-                self.markdown_view.insert(tk.END, line + "\n", "body")
+            self.entry_table.insert(current_parent, "end", text="", values=(self.format_time(entry["created_at"]), entry["content"]))
+    # def load_markdown_file(self):
+    #     try:
+    #         from src.config import LOG_FILE
+    #
+    #         if LOG_FILE.exists():
+    #             content = LOG_FILE.read_text(encoding="utf-8")
+    #
+    #             self.markdown_view.delete("1.0", tk.END)
+    #             self.render_markdown(content)
+    #             self.after(10, lambda: self.markdown_view.see(tk.END))
+    #
+    #         else:
+    #             self.markdown_view.delete("1.0", tk.END)
+    #             self.markdown_view.insert(tk.END, f"Markdown file not found:\n\n{LOG_FILE}")
+    #
+    #     except Exception as e:
+    #         self.markdown_view.delete("1.0", tk.END)
+    #         self.markdown_view.insert(tk.END, f"Error loading markdown file:\n\n{e}")
+    #
+    # def render_markdown(self, content):
+    #     self.markdown_view.delete("1.0", tk.END)
+    #     self.markdown_view.configure(tabs=("3c",))
+    #
+    #     lines = content.splitlines()
+    #
+    #     for line in lines:
+    #
+    #         if " - " in line:
+    #             line = line.replace(" - ", ":\t", 1)
+    #
+    #         stripped = line.strip()
+    #
+    #         if stripped.startswith("### "):
+    #             text = stripped[4:] + "\n"
+    #             self.markdown_view.insert(tk.END, text, "h3")
+    #         elif stripped.startswith("## "):
+    #             text = stripped[3:] + "\n"
+    #             self.markdown_view.insert(tk.END, text, "h2")
+    #         elif stripped.startswith("# "):
+    #             text = stripped[2:] + "\n"
+    #             self.markdown_view.insert(tk.END, text, "h1")
+    #         elif stripped.startswith("- "):
+    #             text = "• " + stripped[2:] + "\n"
+    #             self.markdown_view.insert(tk.END, text, "bullet")
+    #         else:
+    #             self.markdown_view.insert(tk.END, line + "\n", "body")
 
     def open_settings_modal(self):
         modal = tk.Toplevel(self)
