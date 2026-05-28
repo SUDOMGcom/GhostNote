@@ -323,38 +323,25 @@ class GhostnoteApp(tk.Tk):
             import csv
             from tkinter import filedialog
 
-            file_path = filedialog.asksaveasfilename(
-                initialfile=f"GhostNote_Export_{timestamp}.csv",
-                defaultextension=".csv",
-                filetypes=[("CSV Files", "*.csv")]
-            )
-
+            file_path = filedialog.asksaveasfilename(initialfile=f"GhostNote_Export_{timestamp}.csv", defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
             if not file_path: return
 
             with open(file_path, "w", newline="", encoding="utf-8") as file:
                 writer = csv.DictWriter(file, fieldnames=["date", "time", "content"])
-
                 writer.writeheader()
                 writer.writerows(visible_entries)
 
         elif export_type == "markdown":
             from tkinter import filedialog
 
-            file_path = filedialog.asksaveasfilename(
-                initialfile=f"GhostNote_Export_{timestamp}.md",
-                defaultextension=".md",
-                filetypes=[("Markdown Files", "*.md")]
-            )
-
+            file_path = filedialog.asksaveasfilename(initialfile=f"GhostNote_Export_{timestamp}.md", defaultextension=".md", filetypes=[("Markdown Files", "*.md")])
             if not file_path: return
 
             grouped = {}
-
             for entry in visible_entries:
                 grouped.setdefault(entry["date"], []).append(entry)
 
             lines = []
-
             for date, entries in grouped.items():
                 lines.append(f"# {date}")
                 lines.append("")
@@ -365,7 +352,6 @@ class GhostnoteApp(tk.Tk):
                 lines.append("")
 
             markdown_content = "\n".join(lines)
-
             with open(file_path, "w", encoding="utf-8") as file:
                 file.write(markdown_content)
 
