@@ -7,6 +7,43 @@ import src.config as config
 from datetime import datetime
 from src.sqlite_store import get_entries
 
+class ToolTip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tooltip = None
+
+        widget.bind("<Enter>", self.show_tooltip)
+        widget.bind("<Leave>", self.hide_tooltip)
+
+    def show_tooltip(self, event=None):
+        if self.tooltip:
+            return
+
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 2
+
+        self.tooltip = tk.Toplevel(self.widget)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.geometry(f"+{x}+{y}")
+
+        label = tk.Label(
+            self.tooltip,
+            text=self.text,
+            bg="#222",
+            fg="white",
+            relief="solid",
+            borderwidth=1,
+            font=("Segoe UI", 9),
+            padx=6,
+            pady=2
+        )
+        label.pack()
+
+    def hide_tooltip(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
 
 class GhostnoteApp(tk.Tk):
     def __init__(self):
@@ -153,8 +190,17 @@ class GhostnoteApp(tk.Tk):
             self.icon = None
 
     def build_viewer(self):
-        container = ttk.Frame(self, padding=(12, 4, 12, 12))
+        container = ttk.Frame(self, padding=(16, 4, 12, 12))
         container.pack(fill=tk.BOTH, expand=True)
+
+        export_frame = ttk.Frame(container, width=34, height=34)
+        export_frame.pack_propagate(False)
+        export_frame.pack(side=tk.LEFT, anchor="sw", padx=(0, 16))
+        export_button = ttk.Button(export_frame, text="💾", command=lambda: self.open_export_menu(export_button))
+        export_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(export_button, "Export")
+
+
 
         self.entry_table = ttk.Treeview(container, columns=("time", "content"), show="tree headings")
 
@@ -243,6 +289,85 @@ class GhostnoteApp(tk.Tk):
     #             self.markdown_view.insert(tk.END, text, "bullet")
     #         else:
     #             self.markdown_view.insert(tk.END, line + "\n", "body")
+
+    def open_export_menu(self, button):
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label="Export as CSV...", command=lambda: self.export_as("csv"))
+        menu.add_command(label="Export as Markdown...", command=lambda: self.export_as("markdown"))
+
+        x = button.winfo_rootx() + button.winfo_width()
+        y = button.winfo_rooty()
+        menu.tk_popup(x, y)
+
+    def export_as(self, export_type):
+        from tkinter import filedialog
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        visible_entries = []
+
+        for parent in self.entry_table.get_children():
+            date = self.entry_table.item(parent, "text")
+
+            for child in self.entry_table.get_children(parent):
+                values = self.entry_table.item(child, "values")
+
+                visible_entries.append({
+                    "date": date,
+                    "time": values[0],
+                    "content": values[1]
+                })
+
+        if export_type == "csv":
+            import csv
+            from tkinter import filedialog
+
+            file_path = filedialog.asksaveasfilename(
+                initialfile=f"GhostNote_Export_{timestamp}.csv",
+                defaultextension=".csv",
+                filetypes=[("CSV Files", "*.csv")]
+            )
+
+            if not file_path: return
+
+            with open(file_path, "w", newline="", encoding="utf-8") as file:
+                writer = csv.DictWriter(file, fieldnames=["date", "time", "content"])
+
+                writer.writeheader()
+                writer.writerows(visible_entries)
+
+        elif export_type == "markdown":
+            from tkinter import filedialog
+
+            file_path = filedialog.asksaveasfilename(
+                initialfile=f"GhostNote_Export_{timestamp}.md",
+                defaultextension=".md",
+                filetypes=[("Markdown Files", "*.md")]
+            )
+
+            if not file_path: return
+
+            grouped = {}
+
+            for entry in visible_entries:
+                grouped.setdefault(entry["date"], []).append(entry)
+
+            lines = []
+
+            for date, entries in grouped.items():
+                lines.append(f"# {date}")
+                lines.append("")
+
+                for entry in entries:
+                    lines.append(f"- {entry['time']}:\t{entry['content']}")
+
+                lines.append("")
+
+            markdown_content = "\n".join(lines)
+
+            with open(file_path, "w", encoding="utf-8") as file:
+                file.write(markdown_content)
 
     def open_settings_modal(self):
         modal = tk.Toplevel(self)
