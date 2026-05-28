@@ -168,9 +168,9 @@ class GhostnoteApp(tk.Tk):
         button_frame = ttk.Frame(header)
         button_frame.pack(side=tk.RIGHT)
 
-        ttk.Button(button_frame, text="🔍 Search").pack(side=tk.LEFT, padx=4)
-        ttk.Button(button_frame, text="⏷ Filter", command=self.open_filter_modal).pack(side=tk.LEFT, padx=4)
-        ttk.Button(button_frame, text="✦ Analyze", command=self.open_ai_modal).pack(side=tk.LEFT, padx=4)
+        #ttk.Button(button_frame, text="🔍 Search").pack(side=tk.LEFT, padx=4)
+        #ttk.Button(button_frame, text="⏷ Filter", command=self.open_filter_modal).pack(side=tk.LEFT, padx=4)
+        #ttk.Button(button_frame, text="✦ Analyze", command=self.open_ai_modal).pack(side=tk.LEFT, padx=4)
         ttk.Button(button_frame, text="⚙ Settings", command=self.open_settings_modal).pack(side=tk.LEFT, padx=4)
 
     def load_icon(self):
@@ -193,32 +193,73 @@ class GhostnoteApp(tk.Tk):
         container = ttk.Frame(self, padding=(16, 4, 12, 12))
         container.pack(fill=tk.BOTH, expand=True)
 
-        export_frame = ttk.Frame(container, width=34, height=34)
+        button_column = ttk.Frame(container)
+        button_column.pack(side=tk.LEFT, anchor="sw", padx=(0, 16),  fill=tk.Y)
+
+        #refresh button
+        refresh_frame = ttk.Frame(button_column, width=34, height=34)
+        refresh_frame.pack_propagate(False)
+        refresh_frame.pack(pady=(0, 8), side=(tk.TOP))
+        refresh_button = ttk.Button(refresh_frame, text="🗘")#, command=self.open_ai_modal)
+        refresh_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(refresh_button, "Refresh")
+
+        #add ghostnote
+        addGN_frame = ttk.Frame(button_column, width=34, height=34)
+        addGN_frame.pack_propagate(False)
+        addGN_frame.pack(pady=(0, 8))
+        addGN_button = ttk.Button(addGN_frame, text="✚")#, command=self.open_ai_modal)
+        addGN_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(addGN_button, "Add GhostNote")
+
+        #makes the gap in top/bottom buttons
+        ttk.Frame(button_column).pack(expand=True)
+
+        #search button
+        search_frame = ttk.Frame(button_column, width=34, height=34)
+        search_frame.pack_propagate(False)
+        search_frame.pack(pady=(0, 8))
+        search_button = ttk.Button(search_frame, text="🔍")#, command=self.open_ai_modal)
+        search_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(search_button, "Search")
+
+        #analyze button
+        analyze_frame = ttk.Frame(button_column, width=34, height=34)
+        analyze_frame.pack_propagate(False)
+        analyze_frame.pack(pady=(0, 8))
+        analyze_button = ttk.Button(analyze_frame, text="✦", command=self.open_ai_modal)
+        analyze_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(analyze_button, "Analyze")
+
+        #filter button
+        filter_frame = ttk.Frame(button_column, width=34, height=34)
+        filter_frame.pack_propagate(False)
+        filter_frame.pack(pady=(0, 8))
+        filter_button = ttk.Button(filter_frame, text="☰", command=self.open_filter_modal)
+        filter_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(filter_button, "Filter")
+
+        #export button
+        export_frame = ttk.Frame(button_column, width=34, height=34)
         export_frame.pack_propagate(False)
-        export_frame.pack(side=tk.LEFT, anchor="sw", padx=(0, 16))
+        export_frame.pack()
         export_button = ttk.Button(export_frame, text="💾", command=lambda: self.open_export_menu(export_button))
         export_button.pack(fill=tk.BOTH, expand=True)
         ToolTip(export_button, "Export")
 
-
-
         self.entry_table = ttk.Treeview(container, columns=("time", "content"), show="tree headings")
-
         self.entry_table.heading("#0", text="Date", anchor="w")
         self.entry_table.heading("time", text="Time", anchor="e")
         self.entry_table.heading("content", text="Entry", anchor="w")
-
         self.entry_table.column("#0", width=115, minwidth=115, anchor="w", stretch=False)
         self.entry_table.column("time", width=85, minwidth=85, anchor="e", stretch=False)
         self.entry_table.column("content", anchor="w", stretch=True)
-
         self.entry_table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         scrollbar = ttk.Scrollbar(container, orient=tk.VERTICAL, command=self.entry_table.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         self.entry_table.configure(yscrollcommand=scrollbar.set)
-
         self.load_entries()
 
     def format_date(self, created_at):
