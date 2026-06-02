@@ -385,13 +385,33 @@ class GhostnoteApp(tk.Tk):
         popup.configure(bg=theme["bg"])
         search_var = tk.StringVar(value=self.search_filter or "")
 
-        content = ttk.Frame(popup, padding=(8, 8, 8, 8));
-        content.pack(fill="both", expand=True)
+        placeholder = "Search notes, tags, or source..."
+        search_var = tk.StringVar(value=self.search_filter or placeholder)
+        placeholder_active = True
+
+        #content = ttk.Frame(popup, padding=(8, 8, 8, 8)); content.pack(fill="both", expand=True)
+        border = tk.Frame(popup, bg="#d0d0d0")
+        border.pack(fill="both", expand=True)
+
+        content = ttk.Frame(border, padding=(8, 8, 8, 8))
+        content.pack(fill="both", expand=True, padx=3, pady=3)
         entry = ttk.Entry(content, textvariable=search_var, width=32);
         entry.pack(fill="x")
 
+        def clear_placeholder(event=None):
+            nonlocal placeholder_active
+            if placeholder_active:
+                search_var.set("")
+                entry.configure(style="TEntry")
+                placeholder_active = False
+
+        entry.bind("<Button-1>", clear_placeholder)
+        entry.bind("<KeyPress>", clear_placeholder)
+
+
         def apply_search(event=None):
-            self.search_filter = search_var.get().strip() or None
+            text = search_var.get().strip()
+            self.search_filter = None if text == placeholder or not text else text
             self.load_entries()
             popup.destroy()
 
@@ -407,7 +427,7 @@ class GhostnoteApp(tk.Tk):
 
         popup.geometry(f"+{button.winfo_rootx() + button.winfo_width()}+{button.winfo_rooty()}")
         popup.deiconify(); popup.lift()
-        entry.focus_force()
+        popup.after(100, entry.focus_force)
         popup.bind("<Escape>", lambda event: popup.destroy())
         entry.bind("<Return>", apply_search)
 
@@ -601,21 +621,43 @@ class GhostnoteApp(tk.Tk):
     def open_add_ghostnote_menu(self, button):
         popup = tk.Toplevel(self); popup.withdraw(); popup.overrideredirect(True)
         theme = config.get_theme(); now = datetime.now(); popup.configure(bg=theme["bg"])
-        date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p").lstrip("0")); note_var = tk.StringVar()
-        form = ttk.Frame(popup, padding=(8, 8, 8, 8)); form.pack(fill="both", expand=True)
+        date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p").lstrip("0"))
+        #form = ttk.Frame(popup, padding=(8, 8, 8, 8)); form.pack(fill="both", expand=True)
+        border = tk.Frame(popup, bg="#d0d0d0")
+        border.pack(fill="both", expand=True)
+
+        form = ttk.Frame(border, padding=(8, 8, 8, 8))
+        form.pack(fill="both", expand=True, padx=3, pady=3)
+
+        placeholder = "What did you accomplish?"
+        note_var = tk.StringVar(value=placeholder)
+        placeholder_active = True
+
         ttk.Label(form, text="Date").grid(row=0, column=0, sticky="w", padx=(0, 4)); date_entry = DateEntry(form, textvariable=date_var, date_pattern="yyyy-mm-dd", firstweekday="sunday"); date_entry.grid(row=0, column=1, sticky="w", padx=(0, 8))
-        ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_entry = ttk.Entry(form, textvariable=time_var, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8))#, bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["text"], relief="flat");
-        ttk.Label(form, text="Note").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0))#; note_entry = tk.Entry(form, textvariable=note_var, width=46, bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["text"], relief="flat"); note_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=(8, 0))
-        note_entry = ttk.Entry(form, textvariable=note_var, width=46); note_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=(8, 0))
+        ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_entry = ttk.Entry(form, textvariable=time_var, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8))
+        #ttk.Label(form, text="").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0));
+        note_entry = ttk.Entry(form, textvariable=note_var, width=46); note_entry.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0))
+
+        def clear_placeholder(event=None):
+            nonlocal placeholder_active
+            if placeholder_active:
+                note_var.set("")
+                note_entry.configure(style="TEntry")
+                placeholder_active = False
+
+        note_entry.bind("<Button-1>", clear_placeholder)
+        note_entry.bind("<KeyPress>", clear_placeholder)
+
         def save_note(event=None):
             note_text = note_var.get().strip()
-            if not note_text: return
+            if placeholder_active or not note_text: return
             created_at = datetime.strptime(f"{date_var.get().strip()} {time_var.get().strip()}", "%Y-%m-%d %I:%M %p")
             add_entry(note_text, source="Manual", created_at=created_at.isoformat(timespec="seconds"))
             self.load_entries(); popup.destroy()
-        ttk.Button(form, text="Save", command=save_note).grid(row=2, column=3, sticky="e", pady=(8, 0))
+
+        ttk.Button(form, text="Save", command=save_note).grid(row=2, column=0, columnspan=4, pady=(8, 0))
         x = button.winfo_rootx() + button.winfo_width(); y = button.winfo_rooty()
-        popup.geometry(f"+{x}+{y}"); popup.deiconify(); popup.lift(); popup.bind("<Escape>", lambda event: popup.destroy()); popup.bind("<Return>", save_note); note_entry.focus_force()
+        popup.geometry(f"+{x}+{y}"); popup.deiconify(); popup.lift(); popup.bind("<Escape>", lambda event: popup.destroy()); popup.bind("<Return>", save_note); popup.after(100, note_entry.focus_force)
 
 if __name__ == "__main__":
     app = GhostnoteApp()
