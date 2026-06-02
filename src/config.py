@@ -6,7 +6,7 @@ SETTINGS_FILE = DEFAULT_APP_FOLDER / "settings.json"
 
 DEFAULT_SETTINGS = {
     "app_folder": str(DEFAULT_APP_FOLDER),
-    "log_file": str(DEFAULT_APP_FOLDER / "ghostnote.md"),
+    "db_file": str(DEFAULT_APP_FOLDER / "ghostnote.db"),
     "theme": "dark"
 }
 
@@ -29,6 +29,7 @@ THEMES = {
         "button_pressed": "#436756",
         "button_disabled": "#cbd5e1",
         "button_disabled_fg": "#94a3b8",
+        "active_filter_fg": "#f97316",
 
         "border": "#8A8F96",
         "focus": "#7aa2ff",
@@ -52,6 +53,7 @@ THEMES = {
         "button_pressed": "#14532d",
         "button_disabled": "#2a3142",
         "button_disabled_fg": "#6b7280",
+        "active_filter_fg": "#f97316",
 
         "border": "#2c3444",
         "focus": "#7aa2ff",
@@ -84,5 +86,5 @@ def get_theme():
 SETTINGS = load_settings()
 
 APP_FOLDER = Path(SETTINGS["app_folder"])
-LOG_FILE = Path(SETTINGS["log_file"])
+DB_FILE = Path(SETTINGS["db_file"])
 THEME = SETTINGS["theme"]
