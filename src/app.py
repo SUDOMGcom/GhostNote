@@ -18,8 +18,7 @@ class ToolTip:
         widget.bind("<Leave>", self.hide_tooltip)
 
     def show_tooltip(self, event=None):
-        if self.tooltip:
-            return
+        if self.tooltip: return
 
         x = self.widget.winfo_rootx() + 20
         y = self.widget.winfo_rooty() + self.widget.winfo_height() + 2
@@ -28,17 +27,7 @@ class ToolTip:
         self.tooltip.wm_overrideredirect(True)
         self.tooltip.geometry(f"+{x}+{y}")
 
-        label = tk.Label(
-            self.tooltip,
-            text=self.text,
-            bg="#222",
-            fg="white",
-            relief="solid",
-            borderwidth=1,
-            font=("Segoe UI", 9),
-            padx=6,
-            pady=2
-        )
+        label = tk.Label(self.tooltip, text=self.text, bg="#222", fg="white", relief="solid", borderwidth=1, font=("Segoe UI", 9), padx=6, pady=2)
         label.pack()
 
     def hide_tooltip(self, event=None):
@@ -119,18 +108,10 @@ class GhostnoteApp(tk.Tk):
         style.map("Vertical.TScrollbar", background=[("active", theme["entry_bg"])])
         style.configure("Active.TButton", background=theme["button_bg"], foreground=theme["active_filter_fg"], padding=(10, 6), borderwidth=0)
         style.map("Active.TButton", background=[("active", theme["button_hover"]), ("pressed", theme["button_pressed"])], foreground=[("active", theme["active_filter_fg"]), ("pressed", theme["active_filter_fg"])])
-
-        # self.markdown_view.configure(bg=theme["panel"], fg=theme["text"], insertbackground=theme["text"])
-        # self.markdown_view.tag_configure("h1", foreground=theme["text"])
-        # self.markdown_view.tag_configure("h2", foreground=theme["text"])
-        # self.markdown_view.tag_configure("h3", foreground=theme["text"])
-        # self.markdown_view.tag_configure("body", foreground=theme["text"])
-        # self.markdown_view.tag_configure("bullet", foreground=theme["text"])
-
         style.configure("Treeview", font=("Segoe UI", 12), rowheight=36, background=theme["panel"], fieldbackground=theme["panel"], foreground=theme["text"], borderwidth=0, relief="flat")
+        style.map("Treeview", background=[("selected", theme["button_hover"])], foreground=[("selected", theme["button_fg"])])
         style.configure("Treeview.Heading", font=("Segoe UI", 11, "bold"), background=theme["bg"], foreground=theme["text"], borderwidth=0, relief="flat")
         style.map("Treeview.Heading", background=[("active", theme["bg"])], foreground=[("active", theme["text"])])
-        style.map("Treeview", background=[("selected", theme["button_hover"])], foreground=[("selected", theme["button_fg"])])
 
     def fade_in(self, alpha=0.0):
         alpha += 0.05
@@ -179,6 +160,14 @@ class GhostnoteApp(tk.Tk):
         button_frame = ttk.Frame(header)
         button_frame.pack(side=tk.RIGHT)
 
+        #customize button
+        customize_frame = ttk.Frame(button_frame, width=100, height=34)
+        customize_frame.pack_propagate(False)
+        customize_frame.pack(side=tk.LEFT, padx=4)
+        customize_button = ttk.Button(customize_frame, text="🛠 Customize", padding=0, command=self.open_customize_modal)
+        customize_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(customize_button, "Customize Popup")
+
         #settings button
         settings_frame = ttk.Frame(button_frame, width=100, height=34)
         settings_frame.pack_propagate(False)
@@ -202,8 +191,7 @@ class GhostnoteApp(tk.Tk):
             image = Image.open(header_icon_path)
             image.thumbnail((69, 49), Image.LANCZOS)
             self.icon = ImageTk.PhotoImage(image)
-        else:
-            self.icon = None
+        else: self.icon = None
 
     def build_viewer(self):
         container = ttk.Frame(self, padding=(16, 4, 12, 12))
@@ -228,8 +216,9 @@ class GhostnoteApp(tk.Tk):
         addGN_button.pack(fill=tk.BOTH, expand=True)
         ToolTip(addGN_button, "Add GhostNote")
 
-        #makes the gap in top/bottom buttons
-        ttk.Frame(button_column).pack(expand=True)
+        #ttk.Frame(button_column).pack(expand=True) #big gap, expanding the space
+        #ttk.Frame(button_column, width=34, height=34).pack(pady=(0, 8)) #small gap, the size of 1 button
+        ttk.Label(button_column, text="────", width=3, anchor="center").pack(pady=(0, 8))
 
         #search button
         search_frame = ttk.Frame(button_column, width=34, height=34)
@@ -250,13 +239,13 @@ class GhostnoteApp(tk.Tk):
         #export button
         export_frame = ttk.Frame(button_column, width=34, height=34)
         export_frame.pack_propagate(False)
-        export_frame.pack()
+        export_frame.pack(pady=(0, 8))
         export_button = ttk.Button(export_frame, text="💾", command=lambda: self.open_export_menu(export_button))
         export_button.pack(fill=tk.BOTH, expand=True)
         ToolTip(export_button, "Export")
 
-        #makes the gap in top/bottom buttons
-        ttk.Frame(button_column).pack(expand=True)
+        #separator
+        ttk.Label(button_column, text="────", width=3, anchor="center").pack(pady=(0, 8))
 
         #analyze button
         analyze_frame = ttk.Frame(button_column, width=34, height=34)
@@ -512,13 +501,14 @@ class GhostnoteApp(tk.Tk):
         ttk.Button(modal, text="Save", command=save_and_close).pack(pady=20)
         modal.deiconify()
 
-    def open_ai_modal(self):
+    def open_customize_modal(self):
         modal = tk.Toplevel(self)
         theme = config.get_theme()
         modal.configure(bg=theme["bg"])
-        modal.title("Ai Analyze")
+        modal.title("Customize Popup")
         modal_width = 400
         modal_height = 300
+        modal.iconbitmap(self.window_icon_path)
 
         parent_x = self.winfo_x()
         parent_y = self.winfo_y()
@@ -533,8 +523,34 @@ class GhostnoteApp(tk.Tk):
         modal.transient(self)
         modal.grab_set()
 
+        ttk.Label(modal, text="Customize Popup", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
+        ttk.Label(modal, text="Coming Soon!").pack(pady=10)
+        ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
+
+    def open_ai_modal(self):
+        modal = tk.Toplevel(self)
+        theme = config.get_theme()
+        modal.configure(bg=theme["bg"])
+        modal.title("Ai Analyze")
+        modal_width = 400
+        modal_height = 300
+        modal.iconbitmap(self.window_icon_path)
+        
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+
         ttk.Label(modal, text="Ai Analyze", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
-        ttk.Label(modal, text="Ai controls will go here.").pack(pady=10)
+        ttk.Label(modal, text="Coming Soon!").pack(pady=10)
         ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
 
     def open_filter_menu(self, button):
@@ -635,8 +651,7 @@ class GhostnoteApp(tk.Tk):
 
         ttk.Label(form, text="Date").grid(row=0, column=0, sticky="w", padx=(0, 4)); date_entry = DateEntry(form, textvariable=date_var, date_pattern="yyyy-mm-dd", firstweekday="sunday"); date_entry.grid(row=0, column=1, sticky="w", padx=(0, 8))
         ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_entry = ttk.Entry(form, textvariable=time_var, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8))
-        #ttk.Label(form, text="").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0));
-        note_entry = ttk.Entry(form, textvariable=note_var, width=46); note_entry.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0))
+        note_entry = ttk.Entry(form, textvariable=note_var, width=46); note_entry.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0)) #no label needed, using placeholder text instead
 
         def clear_placeholder(event=None):
             nonlocal placeholder_active
