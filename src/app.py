@@ -726,7 +726,7 @@ class GhostnoteApp(tk.Tk):
             "'SUDO-M-GEE!'"
         )
 
-        ttk.Label(modal, text=about_text, justify="center", wraplength=350 ).place( relx=0.5, y=290, width=360, anchor="center") #about label
+        ttk.Label(modal, text=about_text, justify="center", wraplength=350 ).place( relx=0.5, y=300, width=360, anchor="center") #about label
         ttk.Button(modal, text="Close", command=modal.destroy).place(relx=0.5, y=465, anchor="center") #Close button
 
 if __name__ == "__main__":
