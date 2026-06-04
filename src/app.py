@@ -409,7 +409,7 @@ class GhostnoteApp(tk.Tk):
             self.load_entries()
             popup.destroy()
 
-        button_frame = ttk.Frame(content);
+        button_frame = ttk.Frame(content)
         button_frame.pack(pady=(8, 0))
         ttk.Button(button_frame, text="Search", command=apply_search).pack(side="left", padx=4)
         ttk.Button(button_frame, text="Clear", command=clear_search).pack(side="left", padx=4)
@@ -498,7 +498,10 @@ class GhostnoteApp(tk.Tk):
 
         settings_frame.columnconfigure(2, weight=1)
 
-        ttk.Button(modal, text="Save", command=save_and_close).pack(pady=20)
+        button_frame = ttk.Frame(modal)
+        button_frame.pack(pady=20)
+        ttk.Button(button_frame, text="Save", command=save_and_close).pack(side="left", padx=4)
+        ttk.Button(button_frame, text="About Us", command=self.open_about_us_modal).pack(side="left", padx=4)
         modal.deiconify()
 
     def open_customize_modal(self):
@@ -673,6 +676,120 @@ class GhostnoteApp(tk.Tk):
         ttk.Button(form, text="Save", command=save_note).grid(row=2, column=0, columnspan=4, pady=(8, 0))
         x = button.winfo_rootx() + button.winfo_width(); y = button.winfo_rooty()
         popup.geometry(f"+{x}+{y}"); popup.deiconify(); popup.lift(); popup.bind("<Escape>", lambda event: popup.destroy()); popup.bind("<Return>", save_note); popup.after(100, note_entry.focus_force)
+
+    def open_about_us_modal(self):
+        modal = tk.Toplevel(self)
+
+        theme = config.get_theme()
+        modal.configure(bg=theme["bg"])
+
+        modal_width = 400
+        modal_height = 500
+
+        modal.title("About SUDOMG!")
+
+        if self.window_icon_path.exists():
+            modal.iconbitmap(self.window_icon_path)
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+        modal.resizable(False, False)
+
+        # --------------------------
+        # Title
+        # --------------------------
+        ttk.Label(
+            modal,
+            text="SUDOMG!",
+            font=("Segoe UI", 16, "bold")
+        ).place(
+            relx=0.5,
+            anchor="n"
+        )
+
+        # --------------------------
+        # Founder image
+        # --------------------------
+        icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
+        bg_path = icon_root / "founders.png"
+
+        if bg_path.exists():
+            bg_image = Image.open(bg_path)
+
+            # Scale image to fit nicely above text
+            bg_image = bg_image.resize(
+                (modal_width - 80, 140),
+                Image.LANCZOS
+            )
+
+            modal.bg_photo = ImageTk.PhotoImage(bg_image)
+
+            bg_label = tk.Label(
+                modal,
+                image=modal.bg_photo,
+                bg=theme["bg"],
+                borderwidth=0,
+                highlightthickness=0
+            )
+
+            # Bottom of image lands just above title
+            bg_label.place(
+                relx=0.5,
+                y=175,
+                anchor="s"
+            )
+
+        # --------------------------
+        # Description
+        # --------------------------
+        about_text = (
+            "Built by admins. Powered by frustration.\n\n"
+            "SUDOMG! started when two IT admins got tired of wrestling "
+            "with the same problems day after day. Rather than complain "
+            "about them, we built solutions.\n\n"
+            "Every app we create comes from real experience in the trenches "
+            "of IT—automating repetitive work, simplifying complex tasks, "
+            "and eliminating unnecessary headaches.\n\n"
+            "If our tools save you time, reduce your stress, or make you "
+            "wonder how you ever lived without them, we've done our job.\n\n"
+            "SUDOMG! — Tools so useful they'll make you say "
+            "'SUDO-M-GEE!'"
+        )
+
+        ttk.Label(
+            modal,
+            text=about_text,
+            justify="center",
+            wraplength=350
+        ).place(
+            relx=0.5,
+            y=290,
+            width=360,
+            anchor="center"
+        )
+
+        # --------------------------
+        # Close button
+        # --------------------------
+        ttk.Button(
+            modal,
+            text="Close",
+            command=modal.destroy
+        ).place(
+            relx=0.5,
+            y=465,
+            anchor="center"
+        )
+
 
 if __name__ == "__main__":
     app = GhostnoteApp()
