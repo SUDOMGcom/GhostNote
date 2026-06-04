@@ -57,9 +57,15 @@ def set_setting(key, value):
         conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, str(value)))
         conn.commit()
 
+def reset_popup_settings():
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        conn.execute("DELETE FROM settings WHERE key LIKE 'popup_%'")
+        conn.commit()
 
-
-
+def restore_default_settings():
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        conn.execute("DELETE FROM settings")
+        conn.commit()
 
 
 

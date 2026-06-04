@@ -6,7 +6,7 @@ from pathlib import Path
 from screeninfo import get_monitors
 import src.config as config
 from datetime import datetime
-from src.sqlite_store import get_entries, add_entry, get_latest_entry_date, get_setting, set_setting
+from src.sqlite_store import get_entries, add_entry, get_latest_entry_date, get_setting, set_setting, reset_popup_settings
 
 class ToolTip:
     def __init__(self, widget, text):
@@ -507,7 +507,7 @@ class GhostnoteApp(tk.Tk):
         modal.deiconify()
 
     def open_customize_modal(self):
-        modal = tk.Toplevel(self)
+        modal = tk.Toplevel(self); modal.withdraw()
         theme = config.get_theme()
         modal.configure(bg=theme["bg"])
         modal.title("Customize Popup")
@@ -541,7 +541,7 @@ class GhostnoteApp(tk.Tk):
         ttk.Entry(customize_frame, textvariable=prompt_var, width=40).grid(row=0, column=1, sticky="ew", padx=(0, 0), pady=6)
         ttk.Label(customize_frame, text="Categories").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
         ttk.Entry(customize_frame, textvariable=categories_var, width=40).grid(row=1, column=1, sticky="ew", padx=(0, 0), pady=6)
-        info_label = ttk.Label(customize_frame, text=info_character, font=("Segoe UI", 14, "bold"))
+        info_label = ttk.Label(customize_frame, text=info_character, font=("Segoe UI", 14))
         info_label.grid(row=1, column=2, sticky="e", padx=(0, 12), pady=(0, 0))
         ToolTip(info_label, "Comma-separated categories\nExample: Automation, Training, Firefighting\nLeaving Blank removes Category Dropdown")
 
@@ -550,11 +550,20 @@ class GhostnoteApp(tk.Tk):
             set_setting("popup_categories", categories_var.get().strip())
             modal.destroy()
 
-        #ttk.Button(customize_frame, text="Save", command=save_customize).grid(row=3, column=1, sticky="e", padx=(0, 12), pady=20)
-        ttk.Button(modal, text="Save", command=save_customize).pack(pady=20)
+        def restore_customize():
+            reset_popup_settings()
+            prompt_var.set(get_setting("popup_prompt", "What are you working on?"))
+            categories_var.set(get_setting("popup_categories", ""))
+
+        button_frame = ttk.Frame(modal)
+        button_frame.pack(pady=20)
+        ttk.Button(button_frame, text="Save", command=save_customize).pack(side="left", padx=4)
+        ttk.Button(button_frame, text="Restore Defaults", command=restore_customize).pack(side="left", padx=4)
+
+        modal.deiconify()
 
     def open_ai_modal(self):
-        modal = tk.Toplevel(self)
+        modal = tk.Toplevel(self); modal.withdraw()
         theme = config.get_theme()
         modal.configure(bg=theme["bg"])
         modal.title("Ai Analyze")
@@ -578,6 +587,8 @@ class GhostnoteApp(tk.Tk):
         ttk.Label(modal, text="Ai Analyze", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
         ttk.Label(modal, text="Coming Soon!").pack(pady=10)
         ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
+
+        modal.deiconify()
 
     def open_filter_menu(self, button):
         theme = config.get_theme()
@@ -673,7 +684,7 @@ class GhostnoteApp(tk.Tk):
         form = ttk.Frame(border, padding=(8, 8, 8, 8))
         form.pack(fill="both", expand=True, padx=3, pady=3)
 
-        placeholder = "What did you accomplish?"
+        placeholder = get_setting("popup_prompt", "What are you working on?")
         note_var = tk.StringVar(value=placeholder)
         placeholder_active = True
 
@@ -712,7 +723,7 @@ class GhostnoteApp(tk.Tk):
         popup.geometry(f"+{x}+{y}"); popup.deiconify(); popup.lift(); popup.bind("<Escape>", lambda event: popup.destroy()); popup.bind("<Return>", save_note); popup.after(100, note_entry.focus_force)
 
     def open_about_us_modal(self):
-        modal = tk.Toplevel(self)
+        modal = tk.Toplevel(self); modal.withdraw()
         theme = config.get_theme()
         modal.configure(bg=theme["bg"])
         modal_width = 400; modal_height = 500
@@ -762,6 +773,8 @@ class GhostnoteApp(tk.Tk):
 
         ttk.Label(modal, text=about_text, justify="center", wraplength=350 ).place( relx=0.5, y=300, width=360, anchor="center") #about label
         ttk.Button(modal, text="Close", command=modal.destroy).place(relx=0.5, y=465, anchor="center") #Close button
+
+        modal.deiconify()
 
 if __name__ == "__main__":
     app = GhostnoteApp()
