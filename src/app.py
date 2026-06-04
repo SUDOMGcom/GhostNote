@@ -679,13 +679,9 @@ class GhostnoteApp(tk.Tk):
 
     def open_about_us_modal(self):
         modal = tk.Toplevel(self)
-
         theme = config.get_theme()
         modal.configure(bg=theme["bg"])
-
-        modal_width = 400
-        modal_height = 500
-
+        modal_width = 400; modal_height = 500
         modal.title("About SUDOMG!")
 
         if self.window_icon_path.exists():
@@ -704,57 +700,22 @@ class GhostnoteApp(tk.Tk):
         modal.grab_set()
         modal.resizable(False, False)
 
-        # --------------------------
-        # Title
-        # --------------------------
-        ttk.Label(
-            modal,
-            text="SUDOMG!",
-            font=("Segoe UI", 16, "bold")
-        ).place(
-            relx=0.5,
-            anchor="n"
-        )
+        ttk.Label(modal, text="SUDOMG!", font=("Segoe UI", 16, "bold")).place(relx=0.5, anchor="n") # Title
 
-        # --------------------------
-        # Founder image
-        # --------------------------
         icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
         bg_path = icon_root / "founders.png"
 
         if bg_path.exists():
             bg_image = Image.open(bg_path)
-
-            # Scale image to fit nicely above text
-            bg_image = bg_image.resize(
-                (modal_width - 80, 140),
-                Image.LANCZOS
-            )
-
+            bg_image = bg_image.resize((modal_width - 80, 140), Image.LANCZOS)
             modal.bg_photo = ImageTk.PhotoImage(bg_image)
+            bg_label = tk.Label(modal, image=modal.bg_photo, bg=theme["bg"], borderwidth=0, highlightthickness=0)
+            bg_label.place(relx=0.5, y=175, anchor="s") #location of image
 
-            bg_label = tk.Label(
-                modal,
-                image=modal.bg_photo,
-                bg=theme["bg"],
-                borderwidth=0,
-                highlightthickness=0
-            )
-
-            # Bottom of image lands just above title
-            bg_label.place(
-                relx=0.5,
-                y=175,
-                anchor="s"
-            )
-
-        # --------------------------
-        # Description
-        # --------------------------
         about_text = (
             "Built by admins. Powered by frustration.\n\n"
             "SUDOMG! started when two IT admins got tired of wrestling "
-            "with the same problems day after day. Rather than complain "
+            "with the same problems day after day. Rather than complaining "
             "about them, we built solutions.\n\n"
             "Every app we create comes from real experience in the trenches "
             "of IT—automating repetitive work, simplifying complex tasks, "
@@ -765,31 +726,8 @@ class GhostnoteApp(tk.Tk):
             "'SUDO-M-GEE!'"
         )
 
-        ttk.Label(
-            modal,
-            text=about_text,
-            justify="center",
-            wraplength=350
-        ).place(
-            relx=0.5,
-            y=290,
-            width=360,
-            anchor="center"
-        )
-
-        # --------------------------
-        # Close button
-        # --------------------------
-        ttk.Button(
-            modal,
-            text="Close",
-            command=modal.destroy
-        ).place(
-            relx=0.5,
-            y=465,
-            anchor="center"
-        )
-
+        ttk.Label(modal, text=about_text, justify="center", wraplength=350 ).place( relx=0.5, y=290, width=360, anchor="center") #about label
+        ttk.Button(modal, text="Close", command=modal.destroy).place(relx=0.5, y=465, anchor="center") #Close button
 
 if __name__ == "__main__":
     app = GhostnoteApp()
