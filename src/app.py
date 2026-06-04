@@ -707,10 +707,10 @@ class GhostnoteApp(tk.Tk):
 
         if bg_path.exists():
             bg_image = Image.open(bg_path)
-            bg_image = bg_image.resize((modal_width - 80, 140), Image.LANCZOS)
+            bg_image = bg_image.resize((modal_width - 80, 155), Image.LANCZOS)
             modal.bg_photo = ImageTk.PhotoImage(bg_image)
             bg_label = tk.Label(modal, image=modal.bg_photo, bg=theme["bg"], borderwidth=0, highlightthickness=0)
-            bg_label.place(relx=0.5, y=175, anchor="s") #location of image
+            bg_label.place(relx=0.5, y=185, anchor="s") #location of image
 
         about_text = (
             "Built by admins. Powered by frustration.\n\n"
