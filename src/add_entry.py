@@ -11,8 +11,8 @@ from src.sqlite_store import add_entry
 from src.ui.prompt_window import PromptWindow
 
 
-def handle_submit(note_text):
-    add_entry(note_text, source="Right-Click")
+def handle_submit(note_text, tags=""):
+    add_entry(note_text, source="Right-Click", tags=tags)
 
 
 if __name__ == "__main__":

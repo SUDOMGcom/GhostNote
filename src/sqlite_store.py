@@ -18,6 +18,7 @@ def ensure_db_exists():
                 source TEXT
             )
         """)
+        conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
 
 def add_entry(note_text, source="Right-Click", created_at=None, tags=""):
     note_text = note_text.strip()
@@ -29,7 +30,7 @@ def add_entry(note_text, source="Right-Click", created_at=None, tags=""):
 
 def get_entries(start_date=None, end_date=None, search_text=None):
     ensure_db_exists()
-    query, params = "SELECT id, created_at, content FROM entries WHERE 1=1", []
+    query, params = "SELECT id, created_at, content, tags FROM entries WHERE 1=1", []
     if start_date: query, params = query + " AND date(created_at) >= ?", params + [start_date]
     if end_date: query, params = query + " AND date(created_at) <= ?", params + [end_date]
     if search_text: query, params = query + " AND (content LIKE ? OR tags LIKE ? OR source LIKE ?)", params + [f"%{search_text}%"] * 3
@@ -44,4 +45,25 @@ def get_latest_entry_date():
         "SELECT date(created_at) FROM entries ORDER BY created_at DESC LIMIT 1").fetchone()
     return row[0] if row else None
 
-    return rows
+def get_setting(key, default=None):
+    ensure_db_exists()
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else default
+
+def set_setting(key, value):
+    ensure_db_exists()
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, str(value)))
+        conn.commit()
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    set_setting("popup_prompt", "What are you working on?")
+    print(get_setting("popup_prompt"))
+

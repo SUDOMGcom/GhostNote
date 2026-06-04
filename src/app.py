@@ -6,7 +6,7 @@ from pathlib import Path
 from screeninfo import get_monitors
 import src.config as config
 from datetime import datetime
-from src.sqlite_store import get_entries, add_entry, get_latest_entry_date
+from src.sqlite_store import get_entries, add_entry, get_latest_entry_date, get_setting, set_setting
 
 class ToolTip:
     def __init__(self, widget, text):
@@ -297,7 +297,9 @@ class GhostnoteApp(tk.Tk):
                 current_parent = self.entry_table.insert("", "end", text=entry_date, values=("", ""), open=first_group)
                 first_group = False
 
-            self.entry_table.insert(current_parent, "end", text="", values=(self.format_time(entry["created_at"]), entry["content"]))
+            tags = entry["tags"] or ""
+            content = f"[{tags}] {entry['content']}" if tags else entry["content"]
+            self.entry_table.insert(current_parent, "end", text="", values=(self.format_time(entry["created_at"]), content))
 
     def open_export_menu(self, button):
         theme = config.get_theme()
@@ -526,9 +528,30 @@ class GhostnoteApp(tk.Tk):
         modal.transient(self)
         modal.grab_set()
 
-        ttk.Label(modal, text="Customize Popup", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
-        ttk.Label(modal, text="Coming Soon!").pack(pady=10)
-        ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
+        ttk.Label(modal, text="Customize Popup", justify="center", font=("Segoe UI", 32, "bold")).pack(pady=(20, 10))
+
+        customize_frame = ttk.Frame(modal, padding=12)
+        customize_frame.pack(fill=tk.BOTH, expand=True)
+
+        prompt_var = tk.StringVar(value=get_setting("popup_prompt", "What are you working on?"))
+        categories_var = tk.StringVar(value=get_setting("popup_categories", ""))
+        info_character = " \U0001F6C8"
+
+        ttk.Label(customize_frame, text="Prompt question").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
+        ttk.Entry(customize_frame, textvariable=prompt_var, width=40).grid(row=0, column=1, sticky="ew", padx=(0, 0), pady=6)
+        ttk.Label(customize_frame, text="Categories").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
+        ttk.Entry(customize_frame, textvariable=categories_var, width=40).grid(row=1, column=1, sticky="ew", padx=(0, 0), pady=6)
+        info_label = ttk.Label(customize_frame, text=info_character, font=("Segoe UI", 14, "bold"))
+        info_label.grid(row=1, column=2, sticky="e", padx=(0, 12), pady=(0, 0))
+        ToolTip(info_label, "Comma-separated categories\nExample: Automation, Training, Firefighting\nLeaving Blank removes Category Dropdown")
+
+        def save_customize():
+            set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
+            set_setting("popup_categories", categories_var.get().strip())
+            modal.destroy()
+
+        #ttk.Button(customize_frame, text="Save", command=save_customize).grid(row=3, column=1, sticky="e", padx=(0, 12), pady=20)
+        ttk.Button(modal, text="Save", command=save_customize).pack(pady=20)
 
     def open_ai_modal(self):
         modal = tk.Toplevel(self)
@@ -640,6 +663,8 @@ class GhostnoteApp(tk.Tk):
     def open_add_ghostnote_menu(self, button):
         popup = tk.Toplevel(self); popup.withdraw(); popup.overrideredirect(True)
         theme = config.get_theme(); now = datetime.now(); popup.configure(bg=theme["bg"])
+        popup_categories = [c.strip() for c in get_setting("popup_categories", "").split(",") if c.strip()]
+        category_var = tk.StringVar(value=popup_categories[0] if popup_categories else "")
         date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p").lstrip("0"))
         #form = ttk.Frame(popup, padding=(8, 8, 8, 8)); form.pack(fill="both", expand=True)
         border = tk.Frame(popup, bg="#d0d0d0")
@@ -654,7 +679,16 @@ class GhostnoteApp(tk.Tk):
 
         ttk.Label(form, text="Date").grid(row=0, column=0, sticky="w", padx=(0, 4)); date_entry = DateEntry(form, textvariable=date_var, date_pattern="yyyy-mm-dd", firstweekday="sunday"); date_entry.grid(row=0, column=1, sticky="w", padx=(0, 8))
         ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_entry = ttk.Entry(form, textvariable=time_var, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8))
-        note_entry = ttk.Entry(form, textvariable=note_var, width=46); note_entry.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0)) #no label needed, using placeholder text instead
+        #note_entry = ttk.Entry(form, textvariable=note_var, width=46); note_entry.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0)) #no label needed, using placeholder text instead
+        if popup_categories:
+            ttk.Label(form, text="Category").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0))
+            ttk.Combobox(form, textvariable=category_var, values=popup_categories, state="readonly", width=18).grid(
+                row=1, column=1, columnspan=3, sticky="w", pady=(8, 0))
+            note_row = 2
+        else: note_row = 1
+
+        note_entry = ttk.Entry(form, textvariable=note_var, width=46)
+        note_entry.grid(row=note_row, column=0, columnspan=4, sticky="ew", pady=(8, 0))
 
         def clear_placeholder(event=None):
             nonlocal placeholder_active
@@ -670,10 +704,10 @@ class GhostnoteApp(tk.Tk):
             note_text = note_var.get().strip()
             if placeholder_active or not note_text: return
             created_at = datetime.strptime(f"{date_var.get().strip()} {time_var.get().strip()}", "%Y-%m-%d %I:%M %p")
-            add_entry(note_text, source="Manual", created_at=created_at.isoformat(timespec="seconds"))
+            add_entry(note_text, source="Manual", created_at=created_at.isoformat(timespec="seconds"), tags=category_var.get())
             self.load_entries(); popup.destroy()
 
-        ttk.Button(form, text="Save", command=save_note).grid(row=2, column=0, columnspan=4, pady=(8, 0))
+        ttk.Button(form, text="Save", command=save_note).grid(row=note_row + 1, column=0, columnspan=4, pady=(8, 0))
         x = button.winfo_rootx() + button.winfo_width(); y = button.winfo_rooty()
         popup.geometry(f"+{x}+{y}"); popup.deiconify(); popup.lift(); popup.bind("<Escape>", lambda event: popup.destroy()); popup.bind("<Return>", save_note); popup.after(100, note_entry.focus_force)
 

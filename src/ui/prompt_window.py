@@ -4,7 +4,9 @@ ctypes.windll.shcore.SetProcessDpiAwareness(1)
 from pathlib import Path
 import tkinter as tk
 import src.config as config
+from src.sqlite_store import get_setting
 from PIL import Image, ImageTk
+from tkinter import ttk
 
 class PromptWindow:
     def __init__(self, on_submit):
@@ -12,6 +14,14 @@ class PromptWindow:
 
         self.root = tk.Tk()
         theme = config.get_theme()
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("TCombobox", fieldbackground=theme["entry_bg"], background=theme["panel"], foreground=theme["entry_fg"], arrowcolor=theme["text"], bordercolor=theme["border"], lightcolor=theme["border"], darkcolor=theme["border"])
+        style.map("TCombobox", fieldbackground=[("readonly", theme["entry_bg"])], foreground=[("readonly", theme["entry_fg"])])
+        self.root.option_add("*TCombobox*Listbox.background", theme["entry_bg"])
+        self.root.option_add("*TCombobox*Listbox.foreground", theme["entry_fg"])
+        self.root.option_add("*TCombobox*Listbox.selectBackground", theme["panel"])
+        self.root.option_add("*TCombobox*Listbox.selectForeground", theme["text"])
 
         icon_path = Path(__file__).resolve().parents[2] / "assets" / "icons" / "GhostNote.png"
 
@@ -62,13 +72,25 @@ class PromptWindow:
         content_frame = tk.Frame(frame, bg=theme["bg"])
         content_frame.pack(side="left", fill="both", expand=True)
 
+        #get popup customization
+        popup_prompt = get_setting("popup_prompt", "What are you working on?")
+        popup_categories = [c.strip() for c in get_setting("popup_categories", "").split(",") if c.strip()]
+
         # Label
-        label = tk.Label(content_frame, text="What are you working on?", bg=theme["bg"], fg=theme["text"], font=("TkDefaultFont", 10, "bold"))
+        label = tk.Label(content_frame, text=popup_prompt, bg=theme["bg"], fg=theme["text"], font=("TkDefaultFont", 10, "bold"))
         label.pack(anchor="w")
 
         # Text entry
-        entry_border = tk.Frame(content_frame, bg=theme["border"])
-        entry_border.pack(fill="x", pady=(5, 0))
+        entry_row = tk.Frame(content_frame, bg=theme["bg"])
+        entry_row.pack(fill="x", pady=(5, 0))
+
+        if popup_categories:
+            self.category_var = tk.StringVar(value=popup_categories[0])
+            category_menu = ttk.Combobox(entry_row, textvariable=self.category_var, values=popup_categories, state="readonly", width=14, style="TCombobox")
+            category_menu.pack(side="left", padx=(0, 6))
+
+        entry_border = tk.Frame(entry_row, bg=theme["border"])
+        entry_border.pack(side="left", fill="x", expand=True)
 
         entry_wrap = tk.Frame(entry_border, bg=theme["entry_bg"])
         entry_wrap.pack(fill="x", padx=1, pady=1)
@@ -92,11 +114,12 @@ class PromptWindow:
 
     def submit(self, event=None):
         note_text = self.entry.get().strip()
+        category = getattr(self, "category_var", None)
         self.root.destroy()
 
         try:
             if note_text:
-                self.on_submit(note_text)
+                self.on_submit(note_text, category.get() if category else "")
 
 
 
