@@ -1,12 +1,12 @@
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, messagebox
 from tkcalendar import DateEntry
 from PIL import Image, ImageTk
 from pathlib import Path
 from screeninfo import get_monitors
 import src.config as config
 from datetime import datetime
-from src.sqlite_store import get_entries, add_entry, get_latest_entry_date, get_setting, set_setting, reset_popup_settings
+import src.sqlite_store as store
 
 class ToolTip:
     def __init__(self, widget, text):
@@ -71,7 +71,7 @@ class GhostnoteApp(tk.Tk):
         self.minsize(700, 450)
 
         self.load_icon()
-        self.start_date_filter = get_latest_entry_date()
+        self.start_date_filter = store.get_latest_entry_date()
         self.end_date_filter = self.start_date_filter
         self.filter_mode = "Latest day"
         self.filter_active = False
@@ -289,7 +289,7 @@ class GhostnoteApp(tk.Tk):
         current_parent = None
 
         first_group = True
-        for entry in get_entries(self.start_date_filter, self.end_date_filter, self.search_filter):
+        for entry in store.get_entries(self.start_date_filter, self.end_date_filter, self.search_filter):
             entry_date = self.format_date(entry["created_at"])
 
             if entry_date != current_date:
@@ -533,8 +533,8 @@ class GhostnoteApp(tk.Tk):
         customize_frame = ttk.Frame(modal, padding=12)
         customize_frame.pack(fill=tk.BOTH, expand=True)
 
-        prompt_var = tk.StringVar(value=get_setting("popup_prompt", "What are you working on?"))
-        categories_var = tk.StringVar(value=get_setting("popup_categories", ""))
+        prompt_var = tk.StringVar(value=store.get_setting("popup_prompt", "What are you working on?"))
+        categories_var = tk.StringVar(value=store.get_setting("popup_categories", ""))
         info_character = " \U0001F6C8"
 
         ttk.Label(customize_frame, text="Prompt question").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
@@ -546,14 +546,14 @@ class GhostnoteApp(tk.Tk):
         ToolTip(info_label, "Comma-separated categories\nExample: Automation, Training, Firefighting\nLeaving Blank removes Category Dropdown")
 
         def save_customize():
-            set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
-            set_setting("popup_categories", categories_var.get().strip())
+            store.set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
+            store.set_setting("popup_categories", categories_var.get().strip())
             modal.destroy()
 
         def restore_customize():
-            reset_popup_settings()
-            prompt_var.set(get_setting("popup_prompt", "What are you working on?"))
-            categories_var.set(get_setting("popup_categories", ""))
+            store.reset_popup_settings()
+            prompt_var.set(store.get_setting("popup_prompt", "What are you working on?"))
+            categories_var.set(store.get_setting("popup_categories", ""))
 
         button_frame = ttk.Frame(modal)
         button_frame.pack(pady=20)
@@ -605,7 +605,7 @@ class GhostnoteApp(tk.Tk):
         from datetime import timedelta
         self.filter_mode = mode
         if mode == "Latest day":
-            latest = get_latest_entry_date()
+            latest = store.get_latest_entry_date()
             self.start_date_filter = latest
             self.end_date_filter = latest
             self.filter_active = False
@@ -674,9 +674,9 @@ class GhostnoteApp(tk.Tk):
     def open_add_ghostnote_menu(self, button):
         popup = tk.Toplevel(self); popup.withdraw(); popup.overrideredirect(True)
         theme = config.get_theme(); now = datetime.now(); popup.configure(bg=theme["bg"])
-        popup_categories = [c.strip() for c in get_setting("popup_categories", "").split(",") if c.strip()]
+        popup_categories = [c.strip() for c in store.get_setting("popup_categories", "").split(",") if c.strip()]
         category_var = tk.StringVar(value=popup_categories[0] if popup_categories else "")
-        date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p").lstrip("0"))
+        date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p"))
         #form = ttk.Frame(popup, padding=(8, 8, 8, 8)); form.pack(fill="both", expand=True)
         border = tk.Frame(popup, bg="#d0d0d0")
         border.pack(fill="both", expand=True)
@@ -684,13 +684,21 @@ class GhostnoteApp(tk.Tk):
         form = ttk.Frame(border, padding=(8, 8, 8, 8))
         form.pack(fill="both", expand=True, padx=3, pady=3)
 
-        placeholder = get_setting("popup_prompt", "What are you working on?")
+        placeholder = store.get_setting("popup_prompt", "What are you working on?")
         note_var = tk.StringVar(value=placeholder)
         placeholder_active = True
 
         ttk.Label(form, text="Date").grid(row=0, column=0, sticky="w", padx=(0, 4)); date_entry = DateEntry(form, textvariable=date_var, date_pattern="yyyy-mm-dd", firstweekday="sunday"); date_entry.grid(row=0, column=1, sticky="w", padx=(0, 8))
-        ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_entry = ttk.Entry(form, textvariable=time_var, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8))
-        #note_entry = ttk.Entry(form, textvariable=note_var, width=46); note_entry.grid(row=1, column=0, columnspan=4, sticky="ew", pady=(8, 0)) #no label needed, using placeholder text instead
+        ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_options = [f"{h}:{m:02d} {ampm}" for ampm in ("AM", "PM") for h in range(1, 13) for m in range(0, 60, 5)]; time_entry = ttk.Spinbox(form, textvariable=time_var, values=time_options, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8)); time_entry.bind("<FocusIn>", lambda e: time_entry.selection_range(0, tk.END))
+
+        def select_segment(event, widget, breaks):
+            index = widget.index(f"@{event.x}")
+
+            for start, end in breaks:
+                if start <= index <= end:
+                    widget.selection_range(start, end)
+                    return "break"
+
         if popup_categories:
             ttk.Label(form, text="Category").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0))
             ttk.Combobox(form, textvariable=category_var, values=popup_categories, state="readonly", width=18).grid(
@@ -710,12 +718,15 @@ class GhostnoteApp(tk.Tk):
 
         note_entry.bind("<Button-1>", clear_placeholder)
         note_entry.bind("<KeyPress>", clear_placeholder)
+        time_entry.bind("<ButtonRelease-1>", lambda e: select_segment(e, time_entry, [(0, 2), (3, 5), (6, 9)]))
+        date_entry.bind("<ButtonRelease-1>", lambda e: select_segment(e, date_entry, [(0, 4), (5, 7), (8, 15)]))
 
         def save_note(event=None):
             note_text = note_var.get().strip()
             if placeholder_active or not note_text: return
-            created_at = datetime.strptime(f"{date_var.get().strip()} {time_var.get().strip()}", "%Y-%m-%d %I:%M %p")
-            add_entry(note_text, source="Manual", created_at=created_at.isoformat(timespec="seconds"), tags=category_var.get())
+            try: created_at = datetime.strptime(f"{date_var.get().strip()} {time_var.get().strip().upper()}","%Y-%m-%d %I:%M %p")
+            except ValueError: messagebox.showerror("Invalid time","Use a valid time like 2:45 PM."); time_entry.focus_force(); time_entry.selection_range(0, tk.END); return
+            store.add_entry(note_text, source="Manual", created_at=created_at.isoformat(timespec="seconds"), tags=category_var.get())
             self.load_entries(); popup.destroy()
 
         ttk.Button(form, text="Save", command=save_note).grid(row=note_row + 1, column=0, columnspan=4, pady=(8, 0))

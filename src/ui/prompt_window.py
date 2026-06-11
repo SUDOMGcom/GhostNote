@@ -121,8 +121,6 @@ class PromptWindow:
             if note_text:
                 self.on_submit(note_text, category.get() if category else "")
 
-
-
         except Exception as e:
             print(f"GhostNote save failed: {e}")
 
