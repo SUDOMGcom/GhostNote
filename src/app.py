@@ -672,7 +672,9 @@ class GhostnoteApp(tk.Tk):
         start_entry.focus_force()
 
     def open_add_ghostnote_menu(self, button):
-        popup = tk.Toplevel(self); popup.withdraw(); popup.overrideredirect(True)
+        if getattr(self, "add_ghostnote_popup", None) and self.add_ghostnote_popup.winfo_exists(): self.add_ghostnote_popup.destroy()
+
+        popup = self.add_ghostnote_popup = tk.Toplevel(self); popup.withdraw(); popup.overrideredirect(True)
         theme = config.get_theme(); now = datetime.now(); popup.configure(bg=theme["bg"])
         popup_categories = [c.strip() for c in store.get_setting("popup_categories", "").split(",") if c.strip()]
         category_var = tk.StringVar(value=popup_categories[0] if popup_categories else "")
@@ -691,13 +693,19 @@ class GhostnoteApp(tk.Tk):
         ttk.Label(form, text="Date").grid(row=0, column=0, sticky="w", padx=(0, 4)); date_entry = DateEntry(form, textvariable=date_var, date_pattern="yyyy-mm-dd", firstweekday="sunday"); date_entry.grid(row=0, column=1, sticky="w", padx=(0, 8))
         ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_options = [f"{h}:{m:02d} {ampm}" for ampm in ("AM", "PM") for h in range(1, 13) for m in range(0, 60, 5)]; time_entry = ttk.Spinbox(form, textvariable=time_var, values=time_options, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8)); time_entry.bind("<FocusIn>", lambda e: time_entry.selection_range(0, tk.END))
 
-        def select_segment(event, widget, breaks):
+        def select_segment(event, widget, separators="-: "):
+            text = widget.get()
             index = widget.index(f"@{event.x}")
+            if not text: return
 
-            for start, end in breaks:
-                if start <= index <= end:
-                    widget.selection_range(start, end)
-                    return "break"
+            start = index
+            while start > 0 and text[start - 1] not in separators: start -= 1
+
+            end = index
+            while end < len(text) and text[end] not in separators: end += 1
+
+            widget.selection_range(start, end)
+            return "break"
 
         if popup_categories:
             ttk.Label(form, text="Category").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0))
@@ -718,20 +726,44 @@ class GhostnoteApp(tk.Tk):
 
         note_entry.bind("<Button-1>", clear_placeholder)
         note_entry.bind("<KeyPress>", clear_placeholder)
-        time_entry.bind("<ButtonRelease-1>", lambda e: select_segment(e, time_entry, [(0, 2), (3, 5), (6, 9)]))
-        date_entry.bind("<ButtonRelease-1>", lambda e: select_segment(e, date_entry, [(0, 4), (5, 7), (8, 15)]))
+        time_entry.bind("<ButtonRelease-1>", lambda e: select_segment(e, time_entry, ": "))
+        date_entry.bind("<ButtonRelease-1>", lambda e: select_segment(e, date_entry, "-"))
+
+        def close_popup(event=None):
+            if getattr(self, "add_ghostnote_popup", None) is popup: self.add_ghostnote_popup = None
+            if popup.winfo_exists(): popup.destroy()
 
         def save_note(event=None):
             note_text = note_var.get().strip()
             if placeholder_active or not note_text: return
-            try: created_at = datetime.strptime(f"{date_var.get().strip()} {time_var.get().strip().upper()}","%Y-%m-%d %I:%M %p")
-            except ValueError: messagebox.showerror("Invalid time","Use a valid time like 2:45 PM."); time_entry.focus_force(); time_entry.selection_range(0, tk.END); return
+            try: created_at = datetime.strptime(f"{date_var.get().strip()} {time_var.get().strip().upper()}", "%Y-%m-%d %I:%M %p")
+            except ValueError: messagebox.showerror("Invalid time", "Use a valid time like 2:45 PM."); time_entry.focus_force(); time_entry.selection_range(0, tk.END); return
             store.add_entry(note_text, source="Manual", created_at=created_at.isoformat(timespec="seconds"), tags=category_var.get())
-            self.load_entries(); popup.destroy()
+            self.load_entries();
+            close_popup()
 
         ttk.Button(form, text="Save", command=save_note).grid(row=note_row + 1, column=0, columnspan=4, pady=(8, 0))
         x = button.winfo_rootx() + button.winfo_width(); y = button.winfo_rooty()
-        popup.geometry(f"+{x}+{y}"); popup.deiconify(); popup.lift(); popup.bind("<Escape>", lambda event: popup.destroy()); popup.bind("<Return>", save_note); popup.after(100, note_entry.focus_force)
+
+        def close_if_focus_left(event=None):
+            def check():
+                if not popup.winfo_exists(): return
+                focused = popup.focus_get()
+                while focused:
+                    if focused == popup: return
+                    focused = focused.master
+                close_popup()
+
+            popup.after(50, check)
+
+        popup.geometry(f"+{x}+{y}")
+        popup.deiconify()
+        popup.lift()
+        popup.focus_force()
+        popup.bind("<Escape>", close_popup)
+        popup.bind("<Return>", save_note)
+        popup.bind("<FocusOut>", close_if_focus_left)
+        popup.after(100, note_entry.focus_force)
 
     def open_about_us_modal(self):
         modal = tk.Toplevel(self); modal.withdraw()
