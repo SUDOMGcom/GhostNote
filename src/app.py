@@ -709,8 +709,7 @@ class GhostnoteApp(tk.Tk):
 
         if popup_categories:
             ttk.Label(form, text="Category").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0))
-            ttk.Combobox(form, textvariable=category_var, values=popup_categories, state="readonly", width=18).grid(
-                row=1, column=1, columnspan=3, sticky="w", pady=(8, 0))
+            ttk.Combobox(form, textvariable=category_var, values=popup_categories, state="readonly", width=18).grid(row=1, column=1, columnspan=3, sticky="w", pady=(8, 0))
             note_row = 2
         else: note_row = 1
 
