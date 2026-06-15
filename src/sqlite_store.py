@@ -67,7 +67,15 @@ def restore_default_settings():
         conn.execute("DELETE FROM settings")
         conn.commit()
 
+def update_entry(entry_id, content, created_at, tags=None):
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        conn.execute("UPDATE entries SET content = ?, created_at = ?, tags = COALESCE(?, tags) WHERE id = ?", (content, created_at, tags, entry_id))
+        conn.commit()
 
+def delete_entry(entry_id):
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        conn.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
+        conn.commit()
 
 if __name__ == "__main__":
     set_setting("popup_prompt", "What are you working on?")
