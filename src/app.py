@@ -200,13 +200,13 @@ class GhostnoteApp(tk.Tk):
         button_column = ttk.Frame(container)
         button_column.pack(side=tk.LEFT, anchor="sw", padx=(0, 16),  fill=tk.Y)
 
-        #refresh button
-        refresh_frame = ttk.Frame(button_column, width=34, height=34)
-        refresh_frame.pack_propagate(False)
-        refresh_frame.pack(pady=(0, 8), side=(tk.TOP))
-        refresh_button = ttk.Button(refresh_frame, text="🗘", command=self.load_entries)
-        refresh_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(refresh_button, "Refresh")
+        #add ghostnote
+        addGN_frame = ttk.Frame(button_column, width=34, height=34)
+        addGN_frame.pack_propagate(False)
+        addGN_frame.pack(pady=(0, 8))
+        addGN_button = ttk.Button(addGN_frame, text="✚", command=lambda: self.open_add_ghostnote_menu(addGN_button))
+        addGN_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(addGN_button, "Add GhostNote")
 
         # edit ghostnote
         editGN_frame = ttk.Frame(button_column, width=34, height=34)
@@ -218,13 +218,13 @@ class GhostnoteApp(tk.Tk):
         self.editGN_button.pack(fill=tk.BOTH, expand=True)
         ToolTip(self.editGN_button, "Edit Selected GhostNote")
 
-        #add ghostnote
-        addGN_frame = ttk.Frame(button_column, width=34, height=34)
-        addGN_frame.pack_propagate(False)
-        addGN_frame.pack(pady=(0, 8))
-        addGN_button = ttk.Button(addGN_frame, text="✚", command=lambda: self.open_add_ghostnote_menu(addGN_button))
-        addGN_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(addGN_button, "Add GhostNote")
+        #export button
+        export_frame = ttk.Frame(button_column, width=34, height=34)
+        export_frame.pack_propagate(False)
+        export_frame.pack(pady=(0, 8))
+        export_button = ttk.Button(export_frame, text="💾", command=lambda: self.open_export_menu(export_button))
+        export_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(export_button, "Export")
 
         #ttk.Frame(button_column).pack(expand=True) #big gap, expanding the space
         #ttk.Frame(button_column, width=34, height=34).pack(pady=(0, 8)) #small gap, the size of 1 button
@@ -246,13 +246,13 @@ class GhostnoteApp(tk.Tk):
         self.filter_button.pack(fill=tk.BOTH, expand=True)
         ToolTip(self.filter_button, "Filter")
 
-        #export button
-        export_frame = ttk.Frame(button_column, width=34, height=34)
-        export_frame.pack_propagate(False)
-        export_frame.pack(pady=(0, 8))
-        export_button = ttk.Button(export_frame, text="💾", command=lambda: self.open_export_menu(export_button))
-        export_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(export_button, "Export")
+        #refresh button
+        refresh_frame = ttk.Frame(button_column, width=34, height=34)
+        refresh_frame.pack_propagate(False)
+        refresh_frame.pack(pady=(0, 8), side=(tk.TOP))
+        refresh_button = ttk.Button(refresh_frame, text="🗘", command=self.load_entries)
+        refresh_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(refresh_button, "Refresh")
 
         #separator
         ttk.Label(button_column, text="────", width=3, anchor="center").pack(pady=(0, 8))
