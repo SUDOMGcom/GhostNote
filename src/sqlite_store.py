@@ -39,6 +39,12 @@ def get_entries(start_date=None, end_date=None, search_text=None):
         conn.row_factory = sqlite3.Row
         return conn.execute(query, params).fetchall()
 
+def get_entry(entry_id):
+    ensure_db_exists()
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        conn.row_factory = sqlite3.Row
+        return conn.execute("SELECT id, created_at, content, tags, source FROM entries WHERE id = ?", (entry_id,)).fetchone()
+
 def get_latest_entry_date():
     ensure_db_exists()
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn: row = conn.execute(

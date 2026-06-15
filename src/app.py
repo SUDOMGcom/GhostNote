@@ -760,6 +760,8 @@ class GhostnoteApp(tk.Tk):
 
         item_id = selected[0]
         entry_id = int(item_id)
+        entry = store.get_entry(entry_id)
+        current_tag = entry["tags"] or ""
         parent_id = self.entry_table.parent(item_id)
         self.edit_ghostnote_item_id = item_id
 
@@ -769,8 +771,7 @@ class GhostnoteApp(tk.Tk):
         values = self.entry_table.item(item_id, "values")
 
         time_text = values[0]
-        content_text = values[1]
-        if content_text.startswith("[") and "] " in content_text: content_text = content_text.split("] ", 1)[1]
+        content_text = entry["content"]
         theme = config.get_theme()
 
         popup = self.edit_ghostnote_popup = tk.Toplevel(self)
@@ -783,6 +784,16 @@ class GhostnoteApp(tk.Tk):
         popup.date_var = tk.StringVar(value=date_text)
         popup.time_var = tk.StringVar(value=time_text)
         popup.note_var = tk.StringVar(value=content_text)
+        popup.category_var = tk.StringVar(value=current_tag)
+
+        popup_categories = [
+            c.strip()
+            for c in store.get_setting("popup_categories", "").split(",")
+            if c.strip()
+        ]
+
+        if current_tag and current_tag not in popup_categories:
+            popup_categories.append(current_tag)
 
         border = tk.Frame(popup, bg="#d0d0d0")
         border.pack(fill="both", expand=True)
@@ -798,13 +809,20 @@ class GhostnoteApp(tk.Tk):
         time_entry = ttk.Entry(form, textvariable=popup.time_var, width=10, cursor="xterm")
         time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8))
 
-        ttk.Label(form, text="Note").grid(row=0, column=4, sticky="w", padx=(0, 4))
+        ttk.Label(form, text="Category").grid(row=0, column=4, sticky="w", padx=(0, 4))
+
+        if popup_categories: category_entry = ttk.Combobox(form, textvariable=popup.category_var, values=popup_categories, width=18)
+        else: category_entry = ttk.Entry(form, textvariable=popup.category_var, width=18)
+
+        category_entry.grid(row=0, column=5, sticky="w")
+
+        ttk.Label(form, text="Note").grid(row=1, column=0, sticky="w", pady=(8, 0))
         note_entry = tk.Entry(form, textvariable=popup.note_var, width=45, bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["entry_fg"], highlightthickness=2, highlightbackground="#ffffff", highlightcolor="#4a90e2", relief="solid", borderwidth=1)
-        note_entry.grid(row=0, column=5, sticky="ew", padx=(0, 8))
+        note_entry.grid(row=1, column=1, columnspan=5, sticky="ew", padx=(0, 8), pady=(8, 0))
         note_entry.icursor(tk.END)
 
         button_frame = ttk.Frame(form)
-        button_frame.grid(row=0, column=6, columnspan=3, sticky="e")
+        button_frame.grid(row=2, column=0, columnspan=6, sticky="e", pady=(8, 0))
 
         save_button = ttk.Button(button_frame, text="Save", command=lambda: self.save_edited_ghostnote(entry_id, popup))
         save_button.pack(side=tk.LEFT, padx=(4, 0))
@@ -863,7 +881,7 @@ class GhostnoteApp(tk.Tk):
         note_text = popup.note_var.get().strip()
         if not note_text: return
 
-        store.update_entry(entry_id, note_text, created_at.isoformat(timespec="seconds"))
+        store.update_entry(entry_id, note_text, created_at.isoformat(timespec="seconds"), popup.category_var.get().strip() or None)
         self.close_edit_menu()
         self.entry_table.selection_remove(*self.entry_table.selection())
         self.editGN_button.config(state="disabled")
