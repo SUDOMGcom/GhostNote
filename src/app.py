@@ -36,6 +36,8 @@ class ToolTip:
             self.tooltip = None
 
 class GhostnoteApp(tk.Tk):
+    # Section 1 : App Startup / Window Setup
+
     def __init__(self):
         super().__init__()
 
@@ -81,20 +83,31 @@ class GhostnoteApp(tk.Tk):
         self.apply_theme()
         self.after(10, self.fade_in)
 
+    def load_icon(self):
+        icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
+
+        self.window_icon_path = icon_root / "GhostNote.ico"
+        header_icon_path = icon_root / "GhostNote.png"
+
+        if self.window_icon_path.exists():
+            self.iconbitmap(self.window_icon_path)
+
+        if header_icon_path.exists():
+            image = Image.open(header_icon_path)
+            image.thumbnail((69, 49), Image.LANCZOS)
+            self.icon = ImageTk.PhotoImage(image)
+        else: self.icon = None
+
     def apply_theme(self):
         theme = config.get_theme()
-
         self.configure(bg=theme["bg"])
 
         style = ttk.Style()
         style.theme_use("clam")
 
-        if hasattr(self, "title_frame"):
-            self.title_frame.configure(bg=theme["bg"])
-        if hasattr(self, "title_canvas"):
-            self.title_canvas.configure(bg=theme["bg"])
-        if hasattr(self, "sudomg_label"):
-            self.sudomg_label.configure(bg=theme["bg"], fg=theme["muted"])
+        if hasattr(self, "title_frame"): self.title_frame.configure(bg=theme["bg"])
+        if hasattr(self, "title_canvas"): self.title_canvas.configure(bg=theme["bg"])
+        if hasattr(self, "sudomg_label"): self.sudomg_label.configure(bg=theme["bg"], fg=theme["muted"])
 
         style.configure("TFrame", background=theme["bg"])
         style.configure("TLabel", background=theme["bg"], foreground=theme["text"])
@@ -122,6 +135,8 @@ class GhostnoteApp(tk.Tk):
 
         self.attributes("-alpha", alpha)
         self.after(12, lambda: self.fade_in(alpha))
+
+    # Section 2 : Main UI Builders
 
     def build_header(self):
         theme = config.get_theme()
@@ -177,21 +192,6 @@ class GhostnoteApp(tk.Tk):
         ToolTip(settings_button, "Settings")
 
         #ttk.Button(button_frame, text="⚙ Settings", command=self.open_settings_modal).pack(side=tk.LEFT, padx=4)
-
-    def load_icon(self):
-        icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
-
-        self.window_icon_path = icon_root / "GhostNote.ico"
-        header_icon_path = icon_root / "GhostNote.png"
-
-        if self.window_icon_path.exists():
-            self.iconbitmap(self.window_icon_path)
-
-        if header_icon_path.exists():
-            image = Image.open(header_icon_path)
-            image.thumbnail((69, 49), Image.LANCZOS)
-            self.icon = ImageTk.PhotoImage(image)
-        else: self.icon = None
 
     def build_viewer(self):
         container = ttk.Frame(self, padding=(16, 4, 12, 12))
@@ -285,9 +285,7 @@ class GhostnoteApp(tk.Tk):
 
         self.load_entries()
 
-    def update_filter_button_states(self):
-        if hasattr(self, "search_button"): self.search_button.configure(style="Active.TButton" if self.search_filter else "TButton")
-        if hasattr(self, "filter_button"): self.filter_button.configure(style="Active.TButton" if self.filter_active else "TButton")
+    # Section 3 : Shared small helpers
 
     def format_date(self, created_at):
         return datetime.fromisoformat(created_at).strftime("%Y-%m-%d")
@@ -302,8 +300,7 @@ class GhostnoteApp(tk.Tk):
         if not text: return
 
         start = index
-        while start > 0 and text[start - 1] not in separators:
-            start -= 1
+        while start > 0 and text[start - 1] not in separators: start -= 1
 
         end = index
         while end < len(text) and text[end] not in separators: end += 1
@@ -311,42 +308,19 @@ class GhostnoteApp(tk.Tk):
         widget.selection_range(start, end)
         return "break"
 
-    def position_edit_menu(self):
-        popup = getattr(self, "edit_ghostnote_popup", None)
-        item_id = getattr(self, "edit_ghostnote_item_id", None)
+    def update_filter_button_states(self):
+        if hasattr(self, "search_button"): self.search_button.configure(style="Active.TButton" if self.search_filter else "TButton")
+        if hasattr(self, "filter_button"): self.filter_button.configure(style="Active.TButton" if self.filter_active else "TButton")
 
-        if not popup or not popup.winfo_exists() or not item_id: return
+    def is_entry_row(self, item_id):
+        return item_id and self.entry_table.parent(item_id)
 
-        bbox = self.entry_table.bbox(item_id)
-        if not bbox: return
+    def deselect_entries(self):
+        self.entry_table.selection_remove(*self.entry_table.selection())
+        self.entry_table.focus("")
+        self.editGN_button.config(state="disabled")
 
-        x = self.entry_table.winfo_rootx()
-        y = self.entry_table.winfo_rooty() + bbox[1] + bbox[3]
-
-        popup.geometry(f"+{x}+{y}")
-
-    def close_edit_menu_on_focus_out(self, event=None):
-        popup = getattr(self, "edit_ghostnote_popup", None)
-        if popup and popup.winfo_exists(): self.after(50, lambda p=popup: self.close_edit_menu(p))
-
-    def close_edit_menu_on_move(self, event=None):
-        if event and event.widget != self: return
-        self.close_edit_menu()
-
-    def close_edit_menu(self, popup_to_close=None):
-        popup = getattr(self, "edit_ghostnote_popup", None)
-
-        if popup_to_close is not None and popup_to_close != popup:
-            if popup_to_close.winfo_exists(): popup_to_close.destroy()
-            return
-
-        if popup and popup.winfo_exists():
-            try: popup.grab_release()
-            except tk.TclError: pass
-            popup.destroy()
-
-        self.edit_ghostnote_popup = None
-        self.edit_ghostnote_item_id = None
+    # Section 4 : Viewer data + Selection behavior
 
     def load_entries(self):
         self.entry_table.delete(*self.entry_table.get_children())
@@ -384,14 +358,6 @@ class GhostnoteApp(tk.Tk):
 
         self.editGN_button.config(state="normal")
 
-    def is_entry_row(self, item_id):
-        return item_id and self.entry_table.parent(item_id)
-
-    def deselect_entries(self):
-        self.entry_table.selection_remove(*self.entry_table.selection())
-        self.entry_table.focus("")
-        self.editGN_button.config(state="disabled")
-
     def on_entry_left_click(self, event):
         row_id = self.entry_table.identify_row(event.y)
         if not self.is_entry_row(row_id): self.deselect_entries()
@@ -409,6 +375,8 @@ class GhostnoteApp(tk.Tk):
 
         self.open_entry_context_menu(event)
         return "break"
+
+    # Section 5 : Right-Click Menu
 
     def open_entry_context_menu(self, event):
         theme = config.get_theme()
@@ -436,375 +404,96 @@ class GhostnoteApp(tk.Tk):
         self.clipboard_append(note_text)
         self.update()
 
-    def open_export_menu(self, button):
-        theme = config.get_theme()
-        menu = tk.Menu(self, tearoff=0, bg=theme["panel"], fg=theme["text"], activebackground=theme["button_hover"], activeforeground=theme["button_fg"], borderwidth=0)
-        menu.add_command(label="Export as CSV...", command=lambda: self.export_as("csv"))
-        menu.add_command(label="Export as Markdown...", command=lambda: self.export_as("markdown"))
+    # Section 6 : Left-side button features (in button order)
 
-        #dropdown opens from left side
-        x = button.winfo_rootx() + button.winfo_width()
-        y = button.winfo_rooty()
-        menu.tk_popup(x, y)
+    def open_add_ghostnote_menu(self, button):
+        if getattr(self, "add_ghostnote_popup", None) and self.add_ghostnote_popup.winfo_exists(): self.add_ghostnote_popup.destroy()
 
-    def export_as(self, export_type):
-        from tkinter import filedialog
-        from datetime import datetime
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        visible_entries = []
-
-        for parent in self.entry_table.get_children():
-            date = self.entry_table.item(parent, "text")
-
-            for child in self.entry_table.get_children(parent):
-                values = self.entry_table.item(child, "values")
-
-                visible_entries.append({
-                    "date": date,
-                    "time": values[0],
-                    "content": values[1]
-                })
-
-        if export_type == "csv":
-            import csv
-            from tkinter import filedialog
-
-            file_path = filedialog.asksaveasfilename(initialfile=f"GhostNote_Export_{timestamp}.csv", defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
-            if not file_path: return
-
-            with open(file_path, "w", newline="", encoding="utf-8") as file:
-                writer = csv.DictWriter(file, fieldnames=["date", "time", "content"])
-                writer.writeheader()
-                writer.writerows(visible_entries)
-
-        elif export_type == "markdown":
-            from tkinter import filedialog
-
-            file_path = filedialog.asksaveasfilename(initialfile=f"GhostNote_Export_{timestamp}.md", defaultextension=".md", filetypes=[("Markdown Files", "*.md")])
-            if not file_path: return
-
-            grouped = {}
-            for entry in visible_entries:
-                grouped.setdefault(entry["date"], []).append(entry)
-
-            lines = []
-            for date, entries in grouped.items():
-                lines.append(f"# {date}")
-                lines.append("")
-
-                for entry in entries:
-                    lines.append(f"- {entry['time']}:\t{entry['content']}")
-
-                lines.append("")
-
-            markdown_content = "\n".join(lines)
-            with open(file_path, "w", encoding="utf-8") as file:
-                file.write(markdown_content)
-
-    def open_search_menu(self, button):
-        popup = tk.Toplevel(self)
-        popup.withdraw()
-        popup.overrideredirect(True)
-        theme = config.get_theme()
-        popup.configure(bg=theme["bg"])
-        search_var = tk.StringVar(value=self.search_filter or "")
-
-        placeholder = "Search notes, tags, or source..."
-        search_var = tk.StringVar(value=self.search_filter or placeholder)
-        placeholder_active = True
-
-        #content = ttk.Frame(popup, padding=(8, 8, 8, 8)); content.pack(fill="both", expand=True)
+        popup = self.add_ghostnote_popup = tk.Toplevel(self); popup.withdraw(); popup.overrideredirect(True)
+        theme = config.get_theme(); now = datetime.now(); popup.configure(bg=theme["bg"])
+        popup_categories = [c.strip() for c in store.get_setting("popup_categories", "").split(",") if c.strip()]
+        category_var = tk.StringVar(value=popup_categories[0] if popup_categories else "")
+        date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p"))
+        #form = ttk.Frame(popup, padding=(8, 8, 8, 8)); form.pack(fill="both", expand=True)
         border = tk.Frame(popup, bg="#d0d0d0")
         border.pack(fill="both", expand=True)
 
-        content = ttk.Frame(border, padding=(8, 8, 8, 8))
-        content.pack(fill="both", expand=True, padx=3, pady=3)
-        entry = ttk.Entry(content, textvariable=search_var, width=32);
-        entry.pack(fill="x")
+        form = ttk.Frame(border, padding=(8, 8, 8, 8))
+        form.pack(fill="both", expand=True, padx=3, pady=3)
+
+        placeholder = store.get_setting("popup_prompt", "What are you working on?")
+        note_var = tk.StringVar(value=placeholder)
+        placeholder_active = True
+
+        ttk.Label(form, text="Date").grid(row=0, column=0, sticky="w", padx=(0, 4)); date_entry = DateEntry(form, textvariable=date_var, date_pattern="yyyy-mm-dd", firstweekday="sunday"); date_entry.grid(row=0, column=1, sticky="w", padx=(0, 8))
+        ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_options = [f"{h}:{m:02d} {ampm}" for ampm in ("AM", "PM") for h in range(1, 13) for m in range(0, 60, 5)]; time_entry = ttk.Spinbox(form, textvariable=time_var, values=time_options, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8)); time_entry.bind("<FocusIn>", lambda e: time_entry.selection_range(0, tk.END))
+
+        if popup_categories:
+            ttk.Label(form, text="Category").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0))
+            ttk.Combobox(form, textvariable=category_var, values=popup_categories, state="readonly", width=18).grid(row=1, column=1, columnspan=3, sticky="w", pady=(8, 0))
+            note_row = 2
+        else: note_row = 1
+
+        note_entry = ttk.Entry(form, textvariable=note_var, width=46)
+        note_entry.grid(row=note_row, column=0, columnspan=4, sticky="ew", pady=(8, 0))
 
         def clear_placeholder(event=None):
             nonlocal placeholder_active
             if placeholder_active:
-                search_var.set("")
-                entry.configure(style="TEntry")
+                note_var.set("")
+                note_entry.configure(style="TEntry")
                 placeholder_active = False
 
-        entry.bind("<Button-1>", clear_placeholder)
-        entry.bind("<KeyPress>", clear_placeholder)
+        def force_field_focus(widget):
+            widget.focus_force()
+            widget.icursor(tk.END)
 
+        note_entry.bind("<Button-1>", clear_placeholder)
+        note_entry.bind("<KeyPress>", clear_placeholder)
+        time_entry.bind("<ButtonRelease-1>", lambda e: self.select_segment(e, time_entry, ": "))
+        date_entry.bind("<ButtonRelease-1>", lambda e: self.select_segment(e, date_entry, "-"))
+        date_entry.bind("<Button-1>", lambda e: force_field_focus(date_entry))
+        time_entry.bind("<Button-1>", lambda e: force_field_focus(time_entry))
+        note_entry.bind("<Button-1>", lambda e: force_field_focus(note_entry))
 
-        def apply_search(event=None):
-            text = search_var.get().strip()
-            self.search_filter = None if text == placeholder or not text else text
-            self.load_entries()
-            popup.destroy()
+        def close_popup(event=None):
+            if getattr(self, "add_ghostnote_popup", None) is popup: self.add_ghostnote_popup = None
+            if popup.winfo_exists(): popup.destroy()
 
-        def clear_search():
-            self.search_filter = None
-            self.load_entries()
-            popup.destroy()
+        def save_note(event=None):
+            note_text = note_var.get().strip()
+            if placeholder_active or not note_text: return
+            try: created_at = datetime.strptime(f"{date_var.get().strip()} {time_var.get().strip().upper()}", "%Y-%m-%d %I:%M %p")
+            except ValueError: messagebox.showerror("Invalid time", "Use a valid time like 2:45 PM."); time_entry.focus_force(); time_entry.selection_range(0, tk.END); return
+            store.add_entry(note_text, source="Manual", created_at=created_at.isoformat(timespec="seconds"), tags=category_var.get())
+            self.load_entries();
+            close_popup()
 
-        button_frame = ttk.Frame(content)
-        button_frame.pack(pady=(8, 0))
-        ttk.Button(button_frame, text="Search", command=apply_search).pack(side="left", padx=4)
-        ttk.Button(button_frame, text="Clear", command=clear_search).pack(side="left", padx=4)
+        ttk.Button(form, text="Save", command=save_note).grid(row=note_row + 1, column=0, columnspan=4, pady=(8, 0))
+        x = button.winfo_rootx() + button.winfo_width(); y = button.winfo_rooty()
 
-        popup.geometry(f"+{button.winfo_rootx() + button.winfo_width()}+{button.winfo_rooty()}")
-        popup.deiconify(); popup.lift()
-        popup.after(100, entry.focus_force)
-        popup.bind("<Escape>", lambda event: popup.destroy())
-        entry.bind("<Return>", apply_search)
+        def close_if_focus_left(event=None):
+            def check():
+                if not popup.winfo_exists(): return
 
-    def open_settings_modal(self):
-        modal = tk.Toplevel(self)
-        modal.withdraw()
+                try: focused = popup.focus_get()
+                except KeyError: return
 
-        theme = config.get_theme()
-        modal.configure(bg=theme["bg"])
-        modal.title("Settings")
-        modal_width = 600
-        modal_height = 300
-        modal.iconbitmap(self.window_icon_path)
+                while focused:
+                    if focused == popup: return
+                    focused = focused.master
 
-        parent_x = self.winfo_x()
-        parent_y = self.winfo_y()
+                close_popup()
 
-        parent_width = self.winfo_width()
-        parent_height = self.winfo_height()
-
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
-        modal.transient(self)
-        modal.grab_set()
-
-        ttk.Label(modal, text="Settings", font=("Segoe UI", 40, "bold")).pack(pady=(20, 10))
-
-        settings_frame = ttk.Frame(modal, padding=12)
-        settings_frame.pack(fill=tk.BOTH, expand=True)
-
-        settings = config.load_settings()
-
-        app_folder_var = tk.StringVar(value=settings["app_folder"])
-        db_file_var = tk.StringVar(value=settings["db_file"])
-        theme_var = tk.StringVar(value=settings["theme"])
-
-        def browse_app_folder():
-            path = filedialog.askdirectory(initialdir=app_folder_var.get())
-            if path: app_folder_var.set(path)
-
-        def browse_db_file():
-            path = filedialog.askopenfilename(initialdir=app_folder_var.get(), filetypes=[("SQLite Database", "*.db"), ("All Files", "*.*")])
-            if path: db_file_var.set(path)
-
-        # APP FOLDER
-        ttk.Label(settings_frame, text="APP_FOLDER:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(settings_frame, textvariable=app_folder_var, width=60, state="readonly").grid(row=0, column=1, sticky="w", pady=2)
-        ttk.Button(settings_frame, text="Browse", command=browse_app_folder).grid(row=0, column=2, padx=0, pady=4)
-
-        # DB FILE
-        ttk.Label(settings_frame, text="DB_FILE:", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(settings_frame, textvariable=db_file_var, width=60, state="readonly").grid(row=1, column=1, sticky="w", pady=2)
-        ttk.Button(settings_frame, text="Browse", command=browse_db_file).grid(row=1, column=2, padx=0, pady=4)
-
-        # THEME
-        ttk.Label(settings_frame, text="THEME:", font=("Segoe UI", 10, "bold")).grid(row=2, column=0, sticky="e", padx=(0, 12), pady=1)
-        theme_button_frame = ttk.Frame(settings_frame)
-        theme_button_frame.grid(row=2, column=1, sticky="w")
-        ttk.Radiobutton(theme_button_frame, text="Light", variable=theme_var, value="light").pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
-
-        #settings_frame.columnconfigure(1, weight=1)
-
-        def save_and_close():
-            settings["app_folder"] = app_folder_var.get().strip()
-            settings["db_file"] = db_file_var.get().strip()
-            settings["theme"] = theme_var.get()
-
-            config.save_settings(settings)
-            config.SETTINGS = config.load_settings()
-            config.APP_FOLDER = Path(config.SETTINGS["app_folder"])
-            config.DB_FILE = Path(config.SETTINGS["db_file"])
-            config.THEME = config.SETTINGS["theme"]
-
-            self.apply_theme()
-            modal.destroy()
-
-        settings_frame.columnconfigure(2, weight=1)
-
-        button_frame = ttk.Frame(modal)
-        button_frame.pack(pady=20)
-        ttk.Button(button_frame, text="Save", command=save_and_close).pack(side="left", padx=4)
-        ttk.Button(button_frame, text="About Us", command=self.open_about_us_modal).pack(side="left", padx=4)
-        modal.deiconify()
-
-    def open_customize_modal(self):
-        modal = tk.Toplevel(self); modal.withdraw()
-        theme = config.get_theme()
-        modal.configure(bg=theme["bg"])
-        modal.title("Customize Popup")
-        modal_width = 400
-        modal_height = 300
-        modal.iconbitmap(self.window_icon_path)
-
-        parent_x = self.winfo_x()
-        parent_y = self.winfo_y()
-
-        parent_width = self.winfo_width()
-        parent_height = self.winfo_height()
-
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
-        modal.transient(self)
-        modal.grab_set()
-
-        ttk.Label(modal, text="Customize Popup", justify="center", font=("Segoe UI", 32, "bold")).pack(pady=(20, 10))
-
-        customize_frame = ttk.Frame(modal, padding=12)
-        customize_frame.pack(fill=tk.BOTH, expand=True)
-
-        prompt_var = tk.StringVar(value=store.get_setting("popup_prompt", "What are you working on?"))
-        categories_var = tk.StringVar(value=store.get_setting("popup_categories", ""))
-        info_character = " \U0001F6C8"
-
-        ttk.Label(customize_frame, text="Prompt question").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(customize_frame, textvariable=prompt_var, width=40).grid(row=0, column=1, sticky="ew", padx=(0, 0), pady=6)
-        ttk.Label(customize_frame, text="Categories").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(customize_frame, textvariable=categories_var, width=40).grid(row=1, column=1, sticky="ew", padx=(0, 0), pady=6)
-        info_label = ttk.Label(customize_frame, text=info_character, font=("Segoe UI", 14))
-        info_label.grid(row=1, column=2, sticky="e", padx=(0, 12), pady=(0, 0))
-        ToolTip(info_label, "Comma-separated categories\nExample: Automation, Training, Firefighting\nLeaving Blank removes Category Dropdown")
-
-        def save_customize():
-            store.set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
-            store.set_setting("popup_categories", categories_var.get().strip())
-            modal.destroy()
-
-        def restore_customize():
-            store.reset_popup_settings()
-            prompt_var.set(store.get_setting("popup_prompt", "What are you working on?"))
-            categories_var.set(store.get_setting("popup_categories", ""))
-
-        button_frame = ttk.Frame(modal)
-        button_frame.pack(pady=20)
-        ttk.Button(button_frame, text="Save", command=save_customize).pack(side="left", padx=4)
-        ttk.Button(button_frame, text="Restore Defaults", command=restore_customize).pack(side="left", padx=4)
-
-        modal.deiconify()
-
-    def open_ai_modal(self):
-        modal = tk.Toplevel(self); modal.withdraw()
-        theme = config.get_theme()
-        modal.configure(bg=theme["bg"])
-        modal.title("Ai Analyze")
-        modal_width = 400
-        modal_height = 300
-        modal.iconbitmap(self.window_icon_path)
-        
-        parent_x = self.winfo_x()
-        parent_y = self.winfo_y()
-
-        parent_width = self.winfo_width()
-        parent_height = self.winfo_height()
-
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
-        modal.transient(self)
-        modal.grab_set()
-
-        ttk.Label(modal, text="Ai Analyze", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
-        ttk.Label(modal, text="Coming Soon!").pack(pady=10)
-        ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
-
-        modal.deiconify()
-
-    def open_filter_menu(self, button):
-        theme = config.get_theme()
-        menu = tk.Menu(self, tearoff=0, bg=theme["panel"], fg=theme["text"], activebackground=theme["button_hover"], activeforeground=theme["button_fg"], borderwidth=0)
-        for label in ["Latest day", "Last 7 days", "Last 30 days", "Custom dates..."]:
-            menu.add_command(label=("✓ " if self.filter_mode == label else "   ") + label, command=lambda value=label: self.apply_filter_mode(value))
-
-        # dropdown opens from the left
-        x = button.winfo_rootx() + button.winfo_width()
-        y = button.winfo_rooty()
-        menu.tk_popup(x, y)
-
-    def apply_filter_mode(self, mode):
-        from datetime import timedelta
-        self.filter_mode = mode
-        if mode == "Latest day":
-            latest = store.get_latest_entry_date()
-            self.start_date_filter = latest
-            self.end_date_filter = latest
-            self.filter_active = False
-            self.load_entries()
-        elif mode == "Last 7 days":
-            today = datetime.now().date()
-            self.start_date_filter = (today - timedelta(days=6)).isoformat()
-            self.end_date_filter = today.isoformat()
-            self.filter_active = True
-            self.load_entries()
-        elif mode == "Last 30 days":
-            today = datetime.now().date()
-            self.start_date_filter = (today - timedelta(days=29)).isoformat()
-            self.end_date_filter = today.isoformat()
-            self.filter_active = True
-            self.load_entries()
-        elif mode == "Custom dates...":
-            self.open_filter_modal()
-
-    def open_filter_modal(self):
-        modal = tk.Toplevel(self)
-        modal.withdraw()
-        theme = config.get_theme()
-        modal.configure(bg=theme["bg"])
-        modal.title("Filter GhostNote")
-        modal_width, modal_height = 420, 175
-        modal.iconbitmap(self.window_icon_path)
-        parent_x, parent_y = self.winfo_x(), self.winfo_y()
-        parent_width, parent_height = self.winfo_width(), self.winfo_height()
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
-        modal.transient(self)
-        modal.grab_set()
-        start_var, end_var = tk.StringVar(value=self.start_date_filter or ""), tk.StringVar(value=self.end_date_filter or "")
-        ttk.Label(modal, text="Filter GhostNote", font=("Segoe UI", 16, "bold")).pack(pady=(14, 8))
-        form = ttk.Frame(modal, padding=(16, 0, 16, 16))
-        form.pack(anchor="center")
-        ttk.Label(form, text="Start Date").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
-        start_entry = DateEntry(form, textvariable=start_var, date_pattern="yyyy-mm-dd", firstweekday="sunday")
-        start_entry.grid(row=0, column=1, sticky="w", pady=4)
-        ttk.Label(form, text="End Date").grid(row=0, column=2, sticky="w", padx=(16, 8), pady=4)
-        end_entry = DateEntry(form, textvariable=end_var, date_pattern="yyyy-mm-dd", firstweekday="sunday")
-        end_entry.grid(row=0, column=3, sticky="w", pady=4)
-
-        def apply_filter():
-            self.start_date_filter = start_var.get().strip() or None
-            self.end_date_filter = end_var.get().strip() or None
-            self.filter_active = True
-            self.filter_mode = "Custom dates..."
-            self.load_entries()
-            modal.destroy()
-
-        def clear_filter():
-            self.apply_filter_mode("Latest day")
-            modal.destroy()
-
-        button_frame = ttk.Frame(modal);
-        button_frame.pack(pady=(4, 14))
-        ttk.Button(button_frame, text="Apply", command=apply_filter).pack(side=tk.LEFT, padx=4)
-        ttk.Button(button_frame, text="Clear", command=clear_filter).pack(side=tk.LEFT, padx=4)
-        modal.bind("<Escape>", lambda event: modal.destroy())
-        modal.deiconify()
-        start_entry.focus_force()
+            popup.after(50, check)
+        popup.geometry(f"+{x}+{y}")
+        popup.deiconify()
+        popup.lift()
+        popup.focus_force()
+        popup.bind("<Escape>", close_popup)
+        popup.bind("<Return>", save_note)
+        popup.bind("<FocusOut>", close_if_focus_left)
+        popup.after(100, lambda: force_field_focus(note_entry))
 
     def open_edit_ghostnote_menu(self):
         self.close_edit_menu()
@@ -941,94 +630,378 @@ class GhostnoteApp(tk.Tk):
         self.editGN_button.config(state="disabled")
         self.load_entries()
 
-    def open_add_ghostnote_menu(self, button):
-        if getattr(self, "add_ghostnote_popup", None) and self.add_ghostnote_popup.winfo_exists(): self.add_ghostnote_popup.destroy()
+    def open_export_menu(self, button):
+        theme = config.get_theme()
+        menu = tk.Menu(self, tearoff=0, bg=theme["panel"], fg=theme["text"], activebackground=theme["button_hover"], activeforeground=theme["button_fg"], borderwidth=0)
+        menu.add_command(label="Export as CSV...", command=lambda: self.export_as("csv"))
+        menu.add_command(label="Export as Markdown...", command=lambda: self.export_as("markdown"))
 
-        popup = self.add_ghostnote_popup = tk.Toplevel(self); popup.withdraw(); popup.overrideredirect(True)
-        theme = config.get_theme(); now = datetime.now(); popup.configure(bg=theme["bg"])
-        popup_categories = [c.strip() for c in store.get_setting("popup_categories", "").split(",") if c.strip()]
-        category_var = tk.StringVar(value=popup_categories[0] if popup_categories else "")
-        date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p"))
-        #form = ttk.Frame(popup, padding=(8, 8, 8, 8)); form.pack(fill="both", expand=True)
+        #dropdown opens from left side
+        x = button.winfo_rootx() + button.winfo_width()
+        y = button.winfo_rooty()
+        menu.tk_popup(x, y)
+
+    def export_as(self, export_type):
+        from tkinter import filedialog
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        visible_entries = []
+
+        for parent in self.entry_table.get_children():
+            date = self.entry_table.item(parent, "text")
+
+            for child in self.entry_table.get_children(parent):
+                values = self.entry_table.item(child, "values")
+
+                visible_entries.append({
+                    "date": date,
+                    "time": values[0],
+                    "content": values[1]
+                })
+
+        if export_type == "csv":
+            import csv
+            from tkinter import filedialog
+
+            file_path = filedialog.asksaveasfilename(initialfile=f"GhostNote_Export_{timestamp}.csv", defaultextension=".csv", filetypes=[("CSV Files", "*.csv")])
+            if not file_path: return
+
+            with open(file_path, "w", newline="", encoding="utf-8") as file:
+                writer = csv.DictWriter(file, fieldnames=["date", "time", "content"])
+                writer.writeheader()
+                writer.writerows(visible_entries)
+
+        elif export_type == "markdown":
+            from tkinter import filedialog
+
+            file_path = filedialog.asksaveasfilename(initialfile=f"GhostNote_Export_{timestamp}.md", defaultextension=".md", filetypes=[("Markdown Files", "*.md")])
+            if not file_path: return
+
+            grouped = {}
+            for entry in visible_entries:
+                grouped.setdefault(entry["date"], []).append(entry)
+
+            lines = []
+            for date, entries in grouped.items():
+                lines.append(f"# {date}")
+                lines.append("")
+
+                for entry in entries:
+                    lines.append(f"- {entry['time']}:\t{entry['content']}")
+
+                lines.append("")
+
+            markdown_content = "\n".join(lines)
+            with open(file_path, "w", encoding="utf-8") as file:
+                file.write(markdown_content)
+
+    def open_search_menu(self, button):
+        popup = tk.Toplevel(self)
+        popup.withdraw()
+        popup.overrideredirect(True)
+        theme = config.get_theme()
+        popup.configure(bg=theme["bg"])
+        search_var = tk.StringVar(value=self.search_filter or "")
+
+        placeholder = "Search notes, tags, or source..."
+        search_var = tk.StringVar(value=self.search_filter or placeholder)
+        placeholder_active = True
+
+        #content = ttk.Frame(popup, padding=(8, 8, 8, 8)); content.pack(fill="both", expand=True)
         border = tk.Frame(popup, bg="#d0d0d0")
         border.pack(fill="both", expand=True)
 
-        form = ttk.Frame(border, padding=(8, 8, 8, 8))
-        form.pack(fill="both", expand=True, padx=3, pady=3)
-
-        placeholder = store.get_setting("popup_prompt", "What are you working on?")
-        note_var = tk.StringVar(value=placeholder)
-        placeholder_active = True
-
-        ttk.Label(form, text="Date").grid(row=0, column=0, sticky="w", padx=(0, 4)); date_entry = DateEntry(form, textvariable=date_var, date_pattern="yyyy-mm-dd", firstweekday="sunday"); date_entry.grid(row=0, column=1, sticky="w", padx=(0, 8))
-        ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_options = [f"{h}:{m:02d} {ampm}" for ampm in ("AM", "PM") for h in range(1, 13) for m in range(0, 60, 5)]; time_entry = ttk.Spinbox(form, textvariable=time_var, values=time_options, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8)); time_entry.bind("<FocusIn>", lambda e: time_entry.selection_range(0, tk.END))
-
-        if popup_categories:
-            ttk.Label(form, text="Category").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0))
-            ttk.Combobox(form, textvariable=category_var, values=popup_categories, state="readonly", width=18).grid(row=1, column=1, columnspan=3, sticky="w", pady=(8, 0))
-            note_row = 2
-        else: note_row = 1
-
-        note_entry = ttk.Entry(form, textvariable=note_var, width=46)
-        note_entry.grid(row=note_row, column=0, columnspan=4, sticky="ew", pady=(8, 0))
+        content = ttk.Frame(border, padding=(8, 8, 8, 8))
+        content.pack(fill="both", expand=True, padx=3, pady=3)
+        entry = ttk.Entry(content, textvariable=search_var, width=32);
+        entry.pack(fill="x")
 
         def clear_placeholder(event=None):
             nonlocal placeholder_active
             if placeholder_active:
-                note_var.set("")
-                note_entry.configure(style="TEntry")
+                search_var.set("")
+                entry.configure(style="TEntry")
                 placeholder_active = False
 
-        def force_field_focus(widget):
-            widget.focus_force()
-            widget.icursor(tk.END)
+        entry.bind("<Button-1>", clear_placeholder)
+        entry.bind("<KeyPress>", clear_placeholder)
 
-        note_entry.bind("<Button-1>", clear_placeholder)
-        note_entry.bind("<KeyPress>", clear_placeholder)
-        time_entry.bind("<ButtonRelease-1>", lambda e: self.select_segment(e, time_entry, ": "))
-        date_entry.bind("<ButtonRelease-1>", lambda e: self.select_segment(e, date_entry, "-"))
-        date_entry.bind("<Button-1>", lambda e: force_field_focus(date_entry))
-        time_entry.bind("<Button-1>", lambda e: force_field_focus(time_entry))
-        note_entry.bind("<Button-1>", lambda e: force_field_focus(note_entry))
 
-        def close_popup(event=None):
-            if getattr(self, "add_ghostnote_popup", None) is popup: self.add_ghostnote_popup = None
-            if popup.winfo_exists(): popup.destroy()
+        def apply_search(event=None):
+            text = search_var.get().strip()
+            self.search_filter = None if text == placeholder or not text else text
+            self.load_entries()
+            popup.destroy()
 
-        def save_note(event=None):
-            note_text = note_var.get().strip()
-            if placeholder_active or not note_text: return
-            try: created_at = datetime.strptime(f"{date_var.get().strip()} {time_var.get().strip().upper()}", "%Y-%m-%d %I:%M %p")
-            except ValueError: messagebox.showerror("Invalid time", "Use a valid time like 2:45 PM."); time_entry.focus_force(); time_entry.selection_range(0, tk.END); return
-            store.add_entry(note_text, source="Manual", created_at=created_at.isoformat(timespec="seconds"), tags=category_var.get())
-            self.load_entries();
-            close_popup()
+        def clear_search():
+            self.search_filter = None
+            self.load_entries()
+            popup.destroy()
 
-        ttk.Button(form, text="Save", command=save_note).grid(row=note_row + 1, column=0, columnspan=4, pady=(8, 0))
-        x = button.winfo_rootx() + button.winfo_width(); y = button.winfo_rooty()
+        button_frame = ttk.Frame(content)
+        button_frame.pack(pady=(8, 0))
+        ttk.Button(button_frame, text="Search", command=apply_search).pack(side="left", padx=4)
+        ttk.Button(button_frame, text="Clear", command=clear_search).pack(side="left", padx=4)
 
-        def close_if_focus_left(event=None):
-            def check():
-                if not popup.winfo_exists(): return
+        popup.geometry(f"+{button.winfo_rootx() + button.winfo_width()}+{button.winfo_rooty()}")
+        popup.deiconify(); popup.lift()
+        popup.after(100, entry.focus_force)
+        popup.bind("<Escape>", lambda event: popup.destroy())
+        entry.bind("<Return>", apply_search)
 
-                try: focused = popup.focus_get()
-                except KeyError: return
+    def open_filter_menu(self, button):
+        theme = config.get_theme()
+        menu = tk.Menu(self, tearoff=0, bg=theme["panel"], fg=theme["text"], activebackground=theme["button_hover"], activeforeground=theme["button_fg"], borderwidth=0)
+        for label in ["Latest day", "Last 7 days", "Last 30 days", "Custom dates..."]:
+            menu.add_command(label=("✓ " if self.filter_mode == label else "   ") + label, command=lambda value=label: self.apply_filter_mode(value))
 
-                while focused:
-                    if focused == popup: return
-                    focused = focused.master
+        # dropdown opens from the left
+        x = button.winfo_rootx() + button.winfo_width()
+        y = button.winfo_rooty()
+        menu.tk_popup(x, y)
 
-                close_popup()
+    def apply_filter_mode(self, mode):
+        from datetime import timedelta
+        self.filter_mode = mode
+        if mode == "Latest day":
+            latest = store.get_latest_entry_date()
+            self.start_date_filter = latest
+            self.end_date_filter = latest
+            self.filter_active = False
+            self.load_entries()
+        elif mode == "Last 7 days":
+            today = datetime.now().date()
+            self.start_date_filter = (today - timedelta(days=6)).isoformat()
+            self.end_date_filter = today.isoformat()
+            self.filter_active = True
+            self.load_entries()
+        elif mode == "Last 30 days":
+            today = datetime.now().date()
+            self.start_date_filter = (today - timedelta(days=29)).isoformat()
+            self.end_date_filter = today.isoformat()
+            self.filter_active = True
+            self.load_entries()
+        elif mode == "Custom dates...":
+            self.open_filter_modal()
 
-            popup.after(50, check)
-        popup.geometry(f"+{x}+{y}")
-        popup.deiconify()
-        popup.lift()
-        popup.focus_force()
-        popup.bind("<Escape>", close_popup)
-        popup.bind("<Return>", save_note)
-        popup.bind("<FocusOut>", close_if_focus_left)
-        popup.after(100, lambda: force_field_focus(note_entry))
+    def open_filter_modal(self):
+        modal = tk.Toplevel(self)
+        modal.withdraw()
+        theme = config.get_theme()
+        modal.configure(bg=theme["bg"])
+        modal.title("Filter GhostNote")
+        modal_width, modal_height = 420, 175
+        modal.iconbitmap(self.window_icon_path)
+        parent_x, parent_y = self.winfo_x(), self.winfo_y()
+        parent_width, parent_height = self.winfo_width(), self.winfo_height()
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+        start_var, end_var = tk.StringVar(value=self.start_date_filter or ""), tk.StringVar(value=self.end_date_filter or "")
+        ttk.Label(modal, text="Filter GhostNote", font=("Segoe UI", 16, "bold")).pack(pady=(14, 8))
+        form = ttk.Frame(modal, padding=(16, 0, 16, 16))
+        form.pack(anchor="center")
+        ttk.Label(form, text="Start Date").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
+        start_entry = DateEntry(form, textvariable=start_var, date_pattern="yyyy-mm-dd", firstweekday="sunday")
+        start_entry.grid(row=0, column=1, sticky="w", pady=4)
+        ttk.Label(form, text="End Date").grid(row=0, column=2, sticky="w", padx=(16, 8), pady=4)
+        end_entry = DateEntry(form, textvariable=end_var, date_pattern="yyyy-mm-dd", firstweekday="sunday")
+        end_entry.grid(row=0, column=3, sticky="w", pady=4)
+
+        def apply_filter():
+            self.start_date_filter = start_var.get().strip() or None
+            self.end_date_filter = end_var.get().strip() or None
+            self.filter_active = True
+            self.filter_mode = "Custom dates..."
+            self.load_entries()
+            modal.destroy()
+
+        def clear_filter():
+            self.apply_filter_mode("Latest day")
+            modal.destroy()
+
+        button_frame = ttk.Frame(modal);
+        button_frame.pack(pady=(4, 14))
+        ttk.Button(button_frame, text="Apply", command=apply_filter).pack(side=tk.LEFT, padx=4)
+        ttk.Button(button_frame, text="Clear", command=clear_filter).pack(side=tk.LEFT, padx=4)
+        modal.bind("<Escape>", lambda event: modal.destroy())
+        modal.deiconify()
+        start_entry.focus_force()
+
+    def open_ai_modal(self):
+        modal = tk.Toplevel(self);
+        modal.withdraw()
+        theme = config.get_theme()
+        modal.configure(bg=theme["bg"])
+        modal.title("Ai Analyze")
+        modal_width = 400
+        modal_height = 300
+        modal.iconbitmap(self.window_icon_path)
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+
+        ttk.Label(modal, text="Ai Analyze", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
+        ttk.Label(modal, text="Coming Soon!").pack(pady=10)
+        ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
+
+        modal.deiconify()
+
+    # Section 7 : Header button features (in order)
+
+    def open_customize_modal(self):
+        modal = tk.Toplevel(self); modal.withdraw()
+        theme = config.get_theme()
+        modal.configure(bg=theme["bg"])
+        modal.title("Customize Popup")
+        modal_width = 400
+        modal_height = 300
+        modal.iconbitmap(self.window_icon_path)
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+
+        ttk.Label(modal, text="Customize Popup", justify="center", font=("Segoe UI", 32, "bold")).pack(pady=(20, 10))
+
+        customize_frame = ttk.Frame(modal, padding=12)
+        customize_frame.pack(fill=tk.BOTH, expand=True)
+
+        prompt_var = tk.StringVar(value=store.get_setting("popup_prompt", "What are you working on?"))
+        categories_var = tk.StringVar(value=store.get_setting("popup_categories", ""))
+        info_character = " \U0001F6C8"
+
+        ttk.Label(customize_frame, text="Prompt question").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
+        ttk.Entry(customize_frame, textvariable=prompt_var, width=40).grid(row=0, column=1, sticky="ew", padx=(0, 0), pady=6)
+        ttk.Label(customize_frame, text="Categories").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
+        ttk.Entry(customize_frame, textvariable=categories_var, width=40).grid(row=1, column=1, sticky="ew", padx=(0, 0), pady=6)
+        info_label = ttk.Label(customize_frame, text=info_character, font=("Segoe UI", 14))
+        info_label.grid(row=1, column=2, sticky="e", padx=(0, 12), pady=(0, 0))
+        ToolTip(info_label, "Comma-separated categories\nExample: Automation, Training, Firefighting\nLeaving Blank removes Category Dropdown")
+
+        def save_customize():
+            store.set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
+            store.set_setting("popup_categories", categories_var.get().strip())
+            modal.destroy()
+
+        def restore_customize():
+            store.reset_popup_settings()
+            prompt_var.set(store.get_setting("popup_prompt", "What are you working on?"))
+            categories_var.set(store.get_setting("popup_categories", ""))
+
+        button_frame = ttk.Frame(modal)
+        button_frame.pack(pady=20)
+        ttk.Button(button_frame, text="Save", command=save_customize).pack(side="left", padx=4)
+        ttk.Button(button_frame, text="Restore Defaults", command=restore_customize).pack(side="left", padx=4)
+
+        modal.deiconify()
+
+    def open_settings_modal(self):
+        modal = tk.Toplevel(self)
+        modal.withdraw()
+
+        theme = config.get_theme()
+        modal.configure(bg=theme["bg"])
+        modal.title("Settings")
+        modal_width = 600
+        modal_height = 300
+        modal.iconbitmap(self.window_icon_path)
+
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - modal_width) // 2
+        y = parent_y + (parent_height - modal_height) // 2
+
+        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        modal.transient(self)
+        modal.grab_set()
+
+        ttk.Label(modal, text="Settings", font=("Segoe UI", 40, "bold")).pack(pady=(20, 10))
+
+        settings_frame = ttk.Frame(modal, padding=12)
+        settings_frame.pack(fill=tk.BOTH, expand=True)
+
+        settings = config.load_settings()
+
+        app_folder_var = tk.StringVar(value=settings["app_folder"])
+        db_file_var = tk.StringVar(value=settings["db_file"])
+        theme_var = tk.StringVar(value=settings["theme"])
+
+        def browse_app_folder():
+            path = filedialog.askdirectory(initialdir=app_folder_var.get())
+            if path: app_folder_var.set(path)
+
+        def browse_db_file():
+            path = filedialog.askopenfilename(initialdir=app_folder_var.get(), filetypes=[("SQLite Database", "*.db"), ("All Files", "*.*")])
+            if path: db_file_var.set(path)
+
+        # APP FOLDER
+        ttk.Label(settings_frame, text="APP_FOLDER:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
+        ttk.Entry(settings_frame, textvariable=app_folder_var, width=60, state="readonly").grid(row=0, column=1, sticky="w", pady=2)
+        ttk.Button(settings_frame, text="Browse", command=browse_app_folder).grid(row=0, column=2, padx=0, pady=4)
+
+        # DB FILE
+        ttk.Label(settings_frame, text="DB_FILE:", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
+        ttk.Entry(settings_frame, textvariable=db_file_var, width=60, state="readonly").grid(row=1, column=1, sticky="w", pady=2)
+        ttk.Button(settings_frame, text="Browse", command=browse_db_file).grid(row=1, column=2, padx=0, pady=4)
+
+        # THEME
+        ttk.Label(settings_frame, text="THEME:", font=("Segoe UI", 10, "bold")).grid(row=2, column=0, sticky="e", padx=(0, 12), pady=1)
+        theme_button_frame = ttk.Frame(settings_frame)
+        theme_button_frame.grid(row=2, column=1, sticky="w")
+        ttk.Radiobutton(theme_button_frame, text="Light", variable=theme_var, value="light").pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
+
+        #settings_frame.columnconfigure(1, weight=1)
+
+        def save_and_close():
+            settings["app_folder"] = app_folder_var.get().strip()
+            settings["db_file"] = db_file_var.get().strip()
+            settings["theme"] = theme_var.get()
+
+            config.save_settings(settings)
+            config.SETTINGS = config.load_settings()
+            config.APP_FOLDER = Path(config.SETTINGS["app_folder"])
+            config.DB_FILE = Path(config.SETTINGS["db_file"])
+            config.THEME = config.SETTINGS["theme"]
+
+            self.apply_theme()
+            modal.destroy()
+
+        settings_frame.columnconfigure(2, weight=1)
+
+        button_frame = ttk.Frame(modal)
+        button_frame.pack(pady=20)
+        ttk.Button(button_frame, text="Save", command=save_and_close).pack(side="left", padx=4)
+        ttk.Button(button_frame, text="About Us", command=self.open_about_us_modal).pack(side="left", padx=4)
+        modal.deiconify()
 
     def open_about_us_modal(self):
         modal = tk.Toplevel(self); modal.withdraw()
@@ -1083,6 +1056,45 @@ class GhostnoteApp(tk.Tk):
         ttk.Button(modal, text="Close", command=modal.destroy).place(relx=0.5, y=465, anchor="center") #Close button
 
         modal.deiconify()
+
+    # Section 8 : Edit popup helpers
+
+    def position_edit_menu(self):
+        popup = getattr(self, "edit_ghostnote_popup", None)
+        item_id = getattr(self, "edit_ghostnote_item_id", None)
+
+        if not popup or not popup.winfo_exists() or not item_id: return
+
+        bbox = self.entry_table.bbox(item_id)
+        if not bbox: return
+
+        x = self.entry_table.winfo_rootx()
+        y = self.entry_table.winfo_rooty() + bbox[1] + bbox[3]
+
+        popup.geometry(f"+{x}+{y}")
+
+    def close_edit_menu_on_focus_out(self, event=None):
+        popup = getattr(self, "edit_ghostnote_popup", None)
+        if popup and popup.winfo_exists(): self.after(50, lambda p=popup: self.close_edit_menu(p))
+
+    def close_edit_menu_on_move(self, event=None):
+        if event and event.widget != self: return
+        self.close_edit_menu()
+
+    def close_edit_menu(self, popup_to_close=None):
+        popup = getattr(self, "edit_ghostnote_popup", None)
+
+        if popup_to_close is not None and popup_to_close != popup:
+            if popup_to_close.winfo_exists(): popup_to_close.destroy()
+            return
+
+        if popup and popup.winfo_exists():
+            try: popup.grab_release()
+            except tk.TclError: pass
+            popup.destroy()
+
+        self.edit_ghostnote_popup = None
+        self.edit_ghostnote_item_id = None
 
 if __name__ == "__main__":
     app = GhostnoteApp()
