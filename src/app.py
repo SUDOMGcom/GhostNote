@@ -80,6 +80,7 @@ class GhostnoteApp(tk.Tk):
         self.search_filter = None
         self.build_header()
         self.build_viewer()
+        self.bind_keyboard_shortcuts()
         self.apply_theme()
         self.after(10, self.fade_in)
 
@@ -135,6 +136,13 @@ class GhostnoteApp(tk.Tk):
 
         self.attributes("-alpha", alpha)
         self.after(12, lambda: self.fade_in(alpha))
+
+    def bind_keyboard_shortcuts(self):
+        self.bind("<Control-n>", lambda event: self.open_add_ghostnote_menu(self.addGN_button))
+        self.bind("<Control-f>", lambda event: self.open_search_menu(self.search_button))
+        self.bind("<Control-e>", lambda event: self.open_edit_ghostnote_menu())
+        self.bind("<Control-c>", lambda event: self.copy_selected_entry_note())
+        self.bind("<F5>", lambda event: self.load_entries())
 
     # Section 2 : Main UI Builders
 
