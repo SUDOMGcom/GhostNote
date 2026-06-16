@@ -142,6 +142,7 @@ class GhostnoteApp(tk.Tk):
         self.bind("<Control-f>", lambda event: self.open_search_menu(self.search_button))
         self.bind("<Control-e>", lambda event: self.open_edit_ghostnote_menu())
         self.bind("<Control-c>", lambda event: self.copy_selected_entry_note())
+        self.bind("<Control-r>", lambda event: self.load_entries())
         self.bind("<F5>", lambda event: self.load_entries())
 
     # Section 2 : Main UI Builders
@@ -212,7 +213,7 @@ class GhostnoteApp(tk.Tk):
         addGN_frame = ttk.Frame(button_column, width=34, height=34)
         addGN_frame.pack_propagate(False)
         addGN_frame.pack(pady=(0, 8))
-        self.addGN_button = ttk.Button(addGN_frame, text="✚", command=lambda: self.open_add_ghostnote_menu(addGN_button))
+        self.addGN_button = ttk.Button(addGN_frame, text="✚", command=lambda: self.open_add_ghostnote_menu(self.addGN_button))
         self.addGN_button.pack(fill=tk.BOTH, expand=True)
         ToolTip(self.addGN_button, "Add GhostNote")
 
@@ -531,6 +532,7 @@ class GhostnoteApp(tk.Tk):
         popup.transient(self)
         popup.configure(bg=theme["bg"])
         popup.attributes("-toolwindow", True)
+        popup.attributes("-topmost", True)
 
         popup.date_var = tk.StringVar(value=date_text)
         popup.time_var = tk.StringVar(value=time_text)
@@ -617,9 +619,9 @@ class GhostnoteApp(tk.Tk):
         self.position_edit_menu()
         popup.deiconify()
         popup.lift()
-        popup.grab_set()
         popup.focus_force()
         popup.bind("<Escape>", lambda event: self.close_edit_menu())
+        self.bind("<Configure>", self.close_edit_menu_on_move, add="+")
 
         popup.after(100, lambda: (note_entry.focus_force(), note_entry.icursor(tk.END)))
 
@@ -1116,12 +1118,17 @@ class GhostnoteApp(tk.Tk):
             return
 
         if popup and popup.winfo_exists():
+            try: popup.attributes("-topmost", False)
+            except tk.TclError: pass
+
             try: popup.grab_release()
             except tk.TclError: pass
+
             popup.destroy()
 
         self.edit_ghostnote_popup = None
         self.edit_ghostnote_item_id = None
+        self.focus_force()
 
 if __name__ == "__main__":
     app = GhostnoteApp()
