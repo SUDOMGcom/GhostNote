@@ -706,7 +706,9 @@ class GhostnoteApp(tk.Tk):
                 file.write(markdown_content)
 
     def open_search_menu(self, button):
-        popup = tk.Toplevel(self)
+        if getattr(self, "search_popup", None) and self.search_popup.winfo_exists(): self.search_popup.destroy()
+
+        popup = self.search_popup = tk.Toplevel(self)
         popup.withdraw()
         popup.overrideredirect(True)
         theme = config.get_theme()
@@ -736,17 +738,33 @@ class GhostnoteApp(tk.Tk):
         entry.bind("<Button-1>", clear_placeholder)
         entry.bind("<KeyPress>", clear_placeholder)
 
+        def close_popup(event=None):
+            if getattr(self, "search_popup", None) is popup: self.search_popup = None
+            if popup.winfo_exists(): popup.destroy()
+
+        def close_if_focus_left(event=None):
+            def check():
+                if not popup.winfo_exists(): return
+
+                try: focused = popup.focus_get()
+                except KeyError: return
+
+                while focused:
+                    if focused == popup: return
+                    focused = focused.master
+                close_popup()
+            popup.after(50, check)
 
         def apply_search(event=None):
             text = search_var.get().strip()
             self.search_filter = None if text == placeholder or not text else text
             self.load_entries()
-            popup.destroy()
+            close_popup()
 
         def clear_search():
             self.search_filter = None
             self.load_entries()
-            popup.destroy()
+            close_popup()
 
         button_frame = ttk.Frame(content)
         button_frame.pack(pady=(8, 0))
@@ -756,7 +774,8 @@ class GhostnoteApp(tk.Tk):
         popup.geometry(f"+{button.winfo_rootx() + button.winfo_width()}+{button.winfo_rooty()}")
         popup.deiconify(); popup.lift()
         popup.after(100, entry.focus_force)
-        popup.bind("<Escape>", lambda event: popup.destroy())
+        popup.bind("<Escape>", close_popup)
+        popup.bind("<FocusOut>", close_if_focus_left)
         entry.bind("<Return>", apply_search)
 
     def open_filter_menu(self, button):
