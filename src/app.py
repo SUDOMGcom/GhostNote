@@ -204,9 +204,9 @@ class GhostnoteApp(tk.Tk):
         addGN_frame = ttk.Frame(button_column, width=34, height=34)
         addGN_frame.pack_propagate(False)
         addGN_frame.pack(pady=(0, 8))
-        addGN_button = ttk.Button(addGN_frame, text="✚", command=lambda: self.open_add_ghostnote_menu(addGN_button))
-        addGN_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(addGN_button, "Add GhostNote")
+        self.addGN_button = ttk.Button(addGN_frame, text="✚", command=lambda: self.open_add_ghostnote_menu(addGN_button))
+        self.addGN_button.pack(fill=tk.BOTH, expand=True)
+        ToolTip(self.addGN_button, "Add GhostNote")
 
         # edit ghostnote
         editGN_frame = ttk.Frame(button_column, width=34, height=34)
@@ -280,6 +280,8 @@ class GhostnoteApp(tk.Tk):
 
         self.entry_table.configure(yscrollcommand=scrollbar.set)
         self.entry_table.bind("<<TreeviewSelect>>", self.on_entry_selected)
+        self.entry_table.bind("<Button-1>", self.on_entry_left_click, add="+")
+        self.entry_table.bind("<Button-3>", self.on_entry_right_click)
 
         self.load_entries()
 
@@ -381,6 +383,58 @@ class GhostnoteApp(tk.Tk):
             return
 
         self.editGN_button.config(state="normal")
+
+    def is_entry_row(self, item_id):
+        return item_id and self.entry_table.parent(item_id)
+
+    def deselect_entries(self):
+        self.entry_table.selection_remove(*self.entry_table.selection())
+        self.entry_table.focus("")
+        self.editGN_button.config(state="disabled")
+
+    def on_entry_left_click(self, event):
+        row_id = self.entry_table.identify_row(event.y)
+        if not self.is_entry_row(row_id): self.deselect_entries()
+
+    def on_entry_right_click(self, event):
+        row_id = self.entry_table.identify_row(event.y)
+
+        if not self.is_entry_row(row_id):
+            self.deselect_entries()
+            return "break"
+
+        self.entry_table.selection_set(row_id)
+        self.entry_table.focus(row_id)
+        self.editGN_button.config(state="normal")
+
+        self.open_entry_context_menu(event)
+        return "break"
+
+    def open_entry_context_menu(self, event):
+        theme = config.get_theme()
+
+        menu = tk.Menu(self, tearoff=0, bg=theme["panel"], fg=theme["text"], activebackground=theme["button_hover"], activeforeground=theme["button_fg"], borderwidth=0)
+
+        menu.add_command(label="Copy", command=self.copy_selected_entry_note)
+        menu.add_command(label="Edit", command=self.open_edit_ghostnote_menu)
+        menu.add_command(label="New", command=lambda: self.open_add_ghostnote_menu(self.addGN_button))
+
+        try: menu.tk_popup(event.x_root, event.y_root)
+        finally: menu.grab_release()
+
+    def copy_selected_entry_note(self):
+        selected = self.entry_table.selection()
+        if not selected: return
+
+        item_id = selected[0]
+        if not self.is_entry_row(item_id): return
+
+        entry = store.get_entry(int(item_id))
+        note_text = entry["content"]
+
+        self.clipboard_clear()
+        self.clipboard_append(note_text)
+        self.update()
 
     def open_export_menu(self, button):
         theme = config.get_theme()
