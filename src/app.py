@@ -81,6 +81,7 @@ class GhostnoteApp(tk.Tk):
         self.build_header()
         self.build_viewer()
         self.bind_keyboard_shortcuts()
+        self.bind("<Configure>", self.close_edit_menu_on_move, add="+")
         self.apply_theme()
         self.after(10, self.fade_in)
 
@@ -141,7 +142,7 @@ class GhostnoteApp(tk.Tk):
         self.bind("<Control-n>", lambda event: self.open_add_ghostnote_menu(self.addGN_button))
         self.bind("<Control-f>", lambda event: self.open_search_menu(self.search_button))
         self.bind("<Control-e>", lambda event: self.open_edit_ghostnote_menu())
-        self.bind("<Control-c>", lambda event: self.copy_selected_entry_note())
+        self.entry_table.bind("<Control-c>", lambda event: self.copy_selected_entry_note())
         self.bind("<Control-r>", lambda event: self.load_entries())
         self.bind("<F5>", lambda event: self.load_entries())
 
@@ -200,8 +201,6 @@ class GhostnoteApp(tk.Tk):
         settings_button.pack(fill=tk.BOTH, expand=True)
         ToolTip(settings_button, "Settings")
 
-        #ttk.Button(button_frame, text="⚙ Settings", command=self.open_settings_modal).pack(side=tk.LEFT, padx=4)
-
     def build_viewer(self):
         container = ttk.Frame(self, padding=(16, 4, 12, 12))
         container.pack(fill=tk.BOTH, expand=True)
@@ -236,7 +235,6 @@ class GhostnoteApp(tk.Tk):
         ToolTip(export_button, "Export")
 
         #ttk.Frame(button_column).pack(expand=True) #big gap, expanding the space
-        #ttk.Frame(button_column, width=34, height=34).pack(pady=(0, 8)) #small gap, the size of 1 button
         ttk.Label(button_column, text="────", width=3, anchor="center").pack(pady=(0, 8))
 
         #search button
@@ -329,6 +327,17 @@ class GhostnoteApp(tk.Tk):
         self.entry_table.focus("")
         self.editGN_button.config(state="disabled")
 
+    def center_modal(self, modal, width, height):
+        parent_x = self.winfo_x()
+        parent_y = self.winfo_y()
+        parent_width = self.winfo_width()
+        parent_height = self.winfo_height()
+
+        x = parent_x + (parent_width - width) // 2
+        y = parent_y + (parent_height - height) // 2
+
+        modal.geometry(f"{width}x{height}+{x}+{y}")
+
     # Section 4 : Viewer data + Selection behavior
 
     def load_entries(self):
@@ -389,9 +398,7 @@ class GhostnoteApp(tk.Tk):
 
     def open_entry_context_menu(self, event):
         theme = config.get_theme()
-
         menu = tk.Menu(self, tearoff=0, bg=theme["panel"], fg=theme["text"], activebackground=theme["button_hover"], activeforeground=theme["button_fg"], borderwidth=0)
-
         menu.add_command(label="Copy", command=self.copy_selected_entry_note)
         menu.add_command(label="Edit", command=self.open_edit_ghostnote_menu)
         menu.add_command(label="New", command=lambda: self.open_add_ghostnote_menu(self.addGN_button))
@@ -423,7 +430,6 @@ class GhostnoteApp(tk.Tk):
         popup_categories = [c.strip() for c in store.get_setting("popup_categories", "").split(",") if c.strip()]
         category_var = tk.StringVar(value=popup_categories[0] if popup_categories else "")
         date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p"))
-        #form = ttk.Frame(popup, padding=(8, 8, 8, 8)); form.pack(fill="both", expand=True)
         border = tk.Frame(popup, bg="#d0d0d0")
         border.pack(fill="both", expand=True)
 
@@ -583,7 +589,7 @@ class GhostnoteApp(tk.Tk):
         cancel_button = ttk.Button(button_frame, text="Cancel", command=lambda: self.close_edit_menu())
         cancel_button.pack(side=tk.LEFT, padx=(4, 0))
 
-        delete_button = ttk.Button(button_frame, text="Delete")
+        delete_button = ttk.Button(button_frame, text="Delete", width=12)
         delete_button.pack(side=tk.LEFT, padx=(4, 0))
 
         def prompt_delete():
@@ -592,7 +598,7 @@ class GhostnoteApp(tk.Tk):
             cancel_button.config(text="Cancel", command=reset_delete_prompt)
             delete_button.config(text="Confirm Delete", command=delete_ghostnote)
 
-            confirm_label.pack(side=tk.LEFT, padx=(8, 0))
+            confirm_label.pack(side=tk.LEFT, padx=(4, 0))
 
         def delete_ghostnote():
             store.delete_entry(entry_id)
@@ -610,7 +616,7 @@ class GhostnoteApp(tk.Tk):
             cancel_button.config(text="Cancel", command=self.close_edit_menu)
             delete_button.config(text="Delete", command=prompt_delete)
 
-        confirm_label = ttk.Label(button_frame, text="Confirm?")
+        confirm_label = ttk.Label(button_frame, text="Confirm?", width=14, anchor="center")
         delete_button.config(command=prompt_delete)
 
         date_entry.bind("<ButtonRelease-1>", lambda e: self.select_segment(e, date_entry, "-"))
@@ -621,7 +627,6 @@ class GhostnoteApp(tk.Tk):
         popup.lift()
         popup.focus_force()
         popup.bind("<Escape>", lambda event: self.close_edit_menu())
-        self.bind("<Configure>", self.close_edit_menu_on_move, add="+")
 
         popup.after(100, lambda: (note_entry.focus_force(), note_entry.icursor(tk.END)))
 
@@ -652,9 +657,6 @@ class GhostnoteApp(tk.Tk):
         menu.tk_popup(x, y)
 
     def export_as(self, export_type):
-        from tkinter import filedialog
-        from datetime import datetime
-
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         visible_entries = []
@@ -715,13 +717,11 @@ class GhostnoteApp(tk.Tk):
         popup.overrideredirect(True)
         theme = config.get_theme()
         popup.configure(bg=theme["bg"])
-        search_var = tk.StringVar(value=self.search_filter or "")
 
         placeholder = "Search notes, tags, or source..."
         search_var = tk.StringVar(value=self.search_filter or placeholder)
         placeholder_active = True
 
-        #content = ttk.Frame(popup, padding=(8, 8, 8, 8)); content.pack(fill="both", expand=True)
         border = tk.Frame(popup, bg="#d0d0d0")
         border.pack(fill="both", expand=True)
 
@@ -823,11 +823,8 @@ class GhostnoteApp(tk.Tk):
         modal.title("Filter GhostNote")
         modal_width, modal_height = 420, 175
         modal.iconbitmap(self.window_icon_path)
-        parent_x, parent_y = self.winfo_x(), self.winfo_y()
-        parent_width, parent_height = self.winfo_width(), self.winfo_height()
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        self.center_modal(modal, modal_width, modal_height)
+
         modal.transient(self)
         modal.grab_set()
         start_var, end_var = tk.StringVar(value=self.start_date_filter or ""), tk.StringVar(value=self.end_date_filter or "")
@@ -870,17 +867,8 @@ class GhostnoteApp(tk.Tk):
         modal_width = 400
         modal_height = 300
         modal.iconbitmap(self.window_icon_path)
+        self.center_modal(modal, modal_width, modal_height)
 
-        parent_x = self.winfo_x()
-        parent_y = self.winfo_y()
-
-        parent_width = self.winfo_width()
-        parent_height = self.winfo_height()
-
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
         modal.transient(self)
         modal.grab_set()
 
@@ -900,17 +888,8 @@ class GhostnoteApp(tk.Tk):
         modal_width = 400
         modal_height = 300
         modal.iconbitmap(self.window_icon_path)
+        self.center_modal(modal, modal_width, modal_height)
 
-        parent_x = self.winfo_x()
-        parent_y = self.winfo_y()
-
-        parent_width = self.winfo_width()
-        parent_height = self.winfo_height()
-
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
         modal.transient(self)
         modal.grab_set()
 
@@ -958,17 +937,8 @@ class GhostnoteApp(tk.Tk):
         modal_width = 600
         modal_height = 300
         modal.iconbitmap(self.window_icon_path)
+        self.center_modal(modal, modal_width, modal_height)
 
-        parent_x = self.winfo_x()
-        parent_y = self.winfo_y()
-
-        parent_width = self.winfo_width()
-        parent_height = self.winfo_height()
-
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
         modal.transient(self)
         modal.grab_set()
 
@@ -1042,15 +1012,7 @@ class GhostnoteApp(tk.Tk):
         if self.window_icon_path.exists():
             modal.iconbitmap(self.window_icon_path)
 
-        parent_x = self.winfo_x()
-        parent_y = self.winfo_y()
-        parent_width = self.winfo_width()
-        parent_height = self.winfo_height()
-
-        x = parent_x + (parent_width - modal_width) // 2
-        y = parent_y + (parent_height - modal_height) // 2
-
-        modal.geometry(f"{modal_width}x{modal_height}+{x}+{y}")
+        self.center_modal(modal, modal_width, modal_height)
         modal.transient(self)
         modal.grab_set()
         modal.resizable(False, False)
@@ -1108,6 +1070,7 @@ class GhostnoteApp(tk.Tk):
 
     def close_edit_menu_on_move(self, event=None):
         if event and event.widget != self: return
+        if not getattr(self, "edit_ghostnote_popup", None): return
         self.close_edit_menu()
 
     def close_edit_menu(self, popup_to_close=None):
