@@ -208,69 +208,17 @@ class GhostnoteApp(tk.Tk):
         button_column = ttk.Frame(container)
         button_column.pack(side=tk.LEFT, anchor="sw", padx=(0, 16),  fill=tk.Y)
 
-        #add ghostnote
-        addGN_frame = ttk.Frame(button_column, width=34, height=34)
-        addGN_frame.pack_propagate(False)
-        addGN_frame.pack(pady=(0, 8))
-        self.addGN_button = ttk.Button(addGN_frame, text="✚", command=lambda: self.open_add_ghostnote_menu(self.addGN_button))
-        self.addGN_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(self.addGN_button, "Add GhostNote")
-
-        # edit ghostnote
-        editGN_frame = ttk.Frame(button_column, width=34, height=34)
-        editGN_frame.pack_propagate(False)
-        editGN_frame.pack(pady=(0, 8))
-        #button has to use self so other methods can enable it later
-        self.editGN_button = ttk.Button(editGN_frame, text="✎", command=self.open_edit_ghostnote_menu)
-        self.editGN_button.config(state="disabled")
-        self.editGN_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(self.editGN_button, "Edit Selected GhostNote")
-
-        #export button
-        export_frame = ttk.Frame(button_column, width=34, height=34)
-        export_frame.pack_propagate(False)
-        export_frame.pack(pady=(0, 8))
-        export_button = ttk.Button(export_frame, text="💾", command=lambda: self.open_export_menu(export_button))
-        export_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(export_button, "Export")
-
-        #ttk.Frame(button_column).pack(expand=True) #big gap, expanding the space
+        #Left pane buttons
+        self.addGN_button = self.icon_button(button_column, "✚", lambda: self.open_add_ghostnote_menu(self.addGN_button), "Add GhostNote")
+        self.editGN_button = self.icon_button(button_column, "✎", self.open_edit_ghostnote_menu, "Edit Selected GhostNote")
+        self.editGN_button.config(state="disabled"); export_button = self.icon_button(button_column, "💾", lambda: self.open_export_menu(export_button), "Export")
+        #ttk.Frame(button_column).pack(expand=True) #big gap, expanding the space - keeping code for later
         ttk.Label(button_column, text="────", width=3, anchor="center").pack(pady=(0, 8))
-
-        #search button
-        search_frame = ttk.Frame(button_column, width=34, height=34)
-        search_frame.pack_propagate(False)
-        search_frame.pack(pady=(0, 8))
-        self.search_button = ttk.Button(search_frame, text="🔍", command=lambda: self.open_search_menu(self.search_button))
-        self.search_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(self.search_button, "Search")
-
-        #filter button
-        filter_frame = ttk.Frame(button_column, width=34, height=34)
-        filter_frame.pack_propagate(False)
-        filter_frame.pack(pady=(0, 8))
-        self.filter_button = ttk.Button(filter_frame, text="☰", command=lambda: self.open_filter_menu(self.filter_button))
-        self.filter_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(self.filter_button, "Filter")
-
-        #refresh button
-        refresh_frame = ttk.Frame(button_column, width=34, height=34)
-        refresh_frame.pack_propagate(False)
-        refresh_frame.pack(pady=(0, 8), side=(tk.TOP))
-        refresh_button = ttk.Button(refresh_frame, text="🗘", command=self.load_entries)
-        refresh_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(refresh_button, "Refresh")
-
-        #separator
+        self.search_button = self.icon_button(button_column, "🔍", lambda: self.open_search_menu(self.search_button), "Search")
+        self.filter_button = self.icon_button(button_column, "☰", lambda: self.open_filter_menu(self.filter_button), "Filter")
+        refresh_button = self.icon_button(button_column, "🗘", self.load_entries, "Refresh")
         ttk.Label(button_column, text="────", width=3, anchor="center").pack(pady=(0, 8))
-
-        #analyze button
-        analyze_frame = ttk.Frame(button_column, width=34, height=34)
-        analyze_frame.pack_propagate(False)
-        analyze_frame.pack(pady=(0, 8))
-        analyze_button = ttk.Button(analyze_frame, text="✨", padding=0, command=self.open_ai_modal)
-        analyze_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(analyze_button, "Analyze")
+        analyze_button = self.icon_button(button_column, "✨", self.open_ai_modal, "Analyze")
 
         #viewer
         self.entry_table = ttk.Treeview(container, columns=("time", "content"), show="tree headings")
@@ -337,6 +285,17 @@ class GhostnoteApp(tk.Tk):
         y = parent_y + (parent_height - height) // 2
 
         modal.geometry(f"{width}x{height}+{x}+{y}")
+
+    def icon_button(self, parent, text, command, tooltip, size=34):
+        frame = ttk.Frame(parent, width=size, height=size)
+        frame.pack_propagate(False)
+        frame.pack(pady=(0, 8))
+
+        button = ttk.Button(frame, text=text, command=command)
+        button.pack(fill=tk.BOTH, expand=True)
+
+        ToolTip(button, tooltip)
+        return button
 
     # Section 4 : Viewer data + Selection behavior
 
@@ -596,7 +555,7 @@ class GhostnoteApp(tk.Tk):
             save_button.pack_forget()
 
             cancel_button.config(text="Cancel", command=reset_delete_prompt)
-            delete_button.config(text="Confirm Delete", command=delete_ghostnote)
+            delete_button.config(text="Delete", command=delete_ghostnote)
 
             confirm_label.pack(side=tk.LEFT, padx=(4, 0))
 
@@ -616,7 +575,7 @@ class GhostnoteApp(tk.Tk):
             cancel_button.config(text="Cancel", command=self.close_edit_menu)
             delete_button.config(text="Delete", command=prompt_delete)
 
-        confirm_label = ttk.Label(button_frame, text="Confirm?", width=14, anchor="center")
+        confirm_label = ttk.Label(button_frame, text="<- Confirm?", width=14, anchor="center")
         delete_button.config(command=prompt_delete)
 
         date_entry.bind("<ButtonRelease-1>", lambda e: self.select_segment(e, date_entry, "-"))
@@ -1063,10 +1022,6 @@ class GhostnoteApp(tk.Tk):
         y = self.entry_table.winfo_rooty() + bbox[1] + bbox[3]
 
         popup.geometry(f"+{x}+{y}")
-
-    def close_edit_menu_on_focus_out(self, event=None):
-        popup = getattr(self, "edit_ghostnote_popup", None)
-        if popup and popup.winfo_exists(): self.after(50, lambda p=popup: self.close_edit_menu(p))
 
     def close_edit_menu_on_move(self, event=None):
         if event and event.widget != self: return
