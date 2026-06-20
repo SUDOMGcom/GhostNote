@@ -7,33 +7,7 @@ from screeninfo import get_monitors
 import src.config as config
 from datetime import datetime
 import src.sqlite_store as store
-
-class ToolTip:
-    def __init__(self, widget, text):
-        self.widget = widget
-        self.text = text
-        self.tooltip = None
-
-        widget.bind("<Enter>", self.show_tooltip)
-        widget.bind("<Leave>", self.hide_tooltip)
-
-    def show_tooltip(self, event=None):
-        if self.tooltip: return
-
-        x = self.widget.winfo_rootx() + 20
-        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 2
-
-        self.tooltip = tk.Toplevel(self.widget)
-        self.tooltip.wm_overrideredirect(True)
-        self.tooltip.geometry(f"+{x}+{y}")
-
-        label = tk.Label(self.tooltip, text=self.text, bg="#222", fg="white", relief="solid", borderwidth=1, font=("Segoe UI", 9), padx=6, pady=2)
-        label.pack()
-
-    def hide_tooltip(self, event=None):
-        if self.tooltip:
-            self.tooltip.destroy()
-            self.tooltip = None
+from src.ui.tooltip import ToolTip
 
 class GhostnoteApp(tk.Tk):
     # Section 1 : App Startup / Window Setup
@@ -210,8 +184,8 @@ class GhostnoteApp(tk.Tk):
 
         #Left pane buttons
         self.addGN_button = self.icon_button(button_column, "✚", lambda: self.open_add_ghostnote_menu(self.addGN_button), "Add GhostNote")
-        self.editGN_button = self.icon_button(button_column, "✎", self.open_edit_ghostnote_menu, "Edit Selected GhostNote")
-        self.editGN_button.config(state="disabled"); export_button = self.icon_button(button_column, "💾", lambda: self.open_export_menu(export_button), "Export")
+        self.editGN_button = self.icon_button(button_column, "✎", self.open_edit_ghostnote_menu, "Edit Selected GhostNote"); self.editGN_button.config(state="disabled")
+        export_button = self.icon_button(button_column, "💾", lambda: self.open_export_menu(export_button), "Export")
         #ttk.Frame(button_column).pack(expand=True) #big gap, expanding the space - keeping code for later
         ttk.Label(button_column, text="────", width=3, anchor="center").pack(pady=(0, 8))
         self.search_button = self.icon_button(button_column, "🔍", lambda: self.open_search_menu(self.search_button), "Search")
