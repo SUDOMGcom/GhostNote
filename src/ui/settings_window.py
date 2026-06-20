@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 from pathlib import Path
 from PIL import Image, ImageTk
-
+from src.ui.tooltip import ToolTip
 import src.config as config
-
+import src.sqlite_store as store
 
 class SettingsWindow(tk.Toplevel):
     def __init__(self, parent):
@@ -47,22 +47,6 @@ class SettingsWindow(tk.Toplevel):
                 highlightthickness=0,
             )
             self.logo_label.pack(side="left")
-
-        settings_icon_path = Path(__file__).resolve().parents[2] / "assets" / "icons" / "settings.png"
-
-        if settings_icon_path.exists():
-            settings_image = Image.open(settings_icon_path).convert("RGBA")
-            settings_image.thumbnail((49, 49), Image.LANCZOS)
-            self.settings_icon = ImageTk.PhotoImage(settings_image)
-
-            self.settings_icon_label = tk.Label(
-                self.logo_container,
-                image=self.settings_icon,
-                bg=self.theme["panel"],
-                borderwidth=0,
-                highlightthickness=0,
-            )
-            self.settings_icon_label.pack(side="left")
 
         self.content_frame = tk.Frame(self, bg=self.theme["bg"])
         self.content_frame.pack(side="right", fill="both", expand=True)
@@ -189,7 +173,8 @@ class SettingsWindow(tk.Toplevel):
         theme_var = tk.StringVar(value=settings["theme"])
 
         form = ttk.Frame(self.content_frame, padding=(24, 8, 24, 8))
-        form.pack(fill="x", anchor="nw")
+        form.columnconfigure(1, weight=1)
+        form.pack(fill=tk.BOTH, expand=True, anchor="nw")
 
         def browse_app_folder():
             path = filedialog.askdirectory(initialdir=app_folder_var.get())
@@ -204,15 +189,15 @@ class SettingsWindow(tk.Toplevel):
             if path:
                 db_file_var.set(path)
 
-        ttk.Label(form, text="APP_FOLDER:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="e", padx=(0, 12), pady=6)
+        ttk.Label(form, text="Application Directory:").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=6)
         ttk.Entry(form, textvariable=app_folder_var, width=60, state="readonly").grid(row=0, column=1, sticky="w", pady=6)
         ttk.Button(form, text="Browse", command=browse_app_folder).grid(row=0, column=2, padx=(8, 0), pady=6)
 
-        ttk.Label(form, text="DB_FILE:", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="e", padx=(0, 12), pady=6)
+        ttk.Label(form, text="Database Location:").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=6)
         ttk.Entry(form, textvariable=db_file_var, width=60, state="readonly").grid(row=1, column=1, sticky="w", pady=6)
         ttk.Button(form, text="Browse", command=browse_db_file).grid(row=1, column=2, padx=(8, 0), pady=6)
 
-        ttk.Label(form, text="THEME:", font=("Segoe UI", 10, "bold")).grid(row=2, column=0, sticky="e", padx=(0, 12), pady=6)
+        ttk.Label(form, text="Theme:").grid(row=2, column=0, sticky="e", padx=(0, 12), pady=6)
 
         theme_button_frame = ttk.Frame(form)
         theme_button_frame.grid(row=2, column=1, sticky="w", pady=6)
@@ -220,7 +205,7 @@ class SettingsWindow(tk.Toplevel):
         ttk.Radiobutton(theme_button_frame, text="Light", variable=theme_var, value="light").pack(side=tk.LEFT, padx=(0, 10))
         ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
 
-        def save_settings():
+        def save_general():
             settings["app_folder"] = app_folder_var.get().strip()
             settings["db_file"] = db_file_var.get().strip()
             settings["theme"] = theme_var.get()
@@ -236,14 +221,61 @@ class SettingsWindow(tk.Toplevel):
 
             self.rebuild_window("General")
 
-        button_frame = ttk.Frame(self.content_frame, padding=(24, 12, 24, 8))
-        button_frame.pack(anchor="w")
+        #button_frame = ttk.Frame(self.content_frame, padding=(24, 12, 24, 8))
+        #button_frame.pack(anchor="w")
 
-        ttk.Button(button_frame, text="Save", command=save_settings).pack(side="left", padx=(0, 8))
+        #ttk.Button(button_frame, text="Save", command=save_settings).pack(side="left", padx=(0, 8))
+
+
+        def restore_general():
+            store.reset_popup_settings()
+            app_folder_var.set(store.get_setting("general_appfolder", "Default"))
+            db_file_var.set(store.get_setting("general_dbfile", "")) #this will be different
+            if hasattr(self.parent, "apply_theme"): self.parent.apply_theme()
+            self.rebuild_window("General")
+
+        button_frame = ttk.Frame(self.content_frame)
+        button_frame.pack(pady=20)
+        ttk.Button(button_frame, text="Save", command=save_general).pack(side="left", padx=4)
+        ttk.Button(button_frame, text="Restore Defaults", command=restore_general, state="disabled").pack(side="left", padx=4)
+        ttk.Button(button_frame, text="Restore All Defaults", state="disabled").pack(side="left", padx=4)
 
     def show_customize_popup_page(self):
         self.clear_content()
         self.page_title("Customize Popup", "Customize the Add GhostNote popup behavior and appearance.")
+
+        customize_frame = ttk.Frame(self.content_frame, padding=12)
+        customize_frame.columnconfigure(1, weight=1)
+        customize_frame.pack(fill=tk.BOTH, expand=True)
+
+        prompt_var = tk.StringVar(value=store.get_setting("popup_prompt", "What are you working on?"))
+        categories_var = tk.StringVar(value=store.get_setting("popup_categories", ""))
+        info_character = " \U0001F6C8"
+
+        ttk.Label(customize_frame, text="Prompt question:").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
+        ttk.Entry(customize_frame, textvariable=prompt_var, width=40).grid(row=0, column=1, sticky="ew", padx=(0, 0), pady=6)
+        ttk.Label(customize_frame, text="Categories:").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
+        ttk.Entry(customize_frame, textvariable=categories_var, width=40).grid(row=1, column=1, sticky="ew", padx=(0, 0), pady=6)
+        info_label = ttk.Label(customize_frame, text=info_character, font=("Segoe UI", 14))
+        info_label.grid(row=1, column=2, sticky="e", padx=(0, 12), pady=(0, 0))
+        ToolTip(info_label, "Comma-separated categories\nExample: Automation, Training, Firefighting\nLeaving Blank removes Category Dropdown")
+
+        def save_customize():
+            store.set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
+            store.set_setting("popup_categories", categories_var.get().strip())
+            self.rebuild_window("Customize Popup")
+
+        def restore_customize():
+            store.reset_popup_settings()
+            prompt_var.set(store.get_setting("popup_prompt", "What are you working on?"))
+            categories_var.set(store.get_setting("popup_categories", ""))
+
+        button_frame = ttk.Frame(self.content_frame)
+        button_frame.pack(pady=20)
+        ttk.Button(button_frame, text="Save", command=save_customize).pack(side="left", padx=4)
+        ttk.Button(button_frame, text="Restore Defaults", command=restore_customize).pack(side="left", padx=4)
+        ttk.Button(button_frame, text="Restore All Defaults", state="disabled").pack(side="left", padx=4)
+
 
     def show_reminders_page(self):
         self.clear_content()
@@ -273,10 +305,10 @@ if __name__ == "__main__":
     icon_root = Path(__file__).resolve().parents[2] / "assets" / "icons"
     root.window_icon_path = icon_root / "GhostNote.ico"
 
-    png_path = icon_root / "GhostNote.png"
+    png_path = icon_root / "Settings.png"
     if png_path.exists():
         image = Image.open(png_path)
-        image.thumbnail((69, 49), Image.LANCZOS)
+        image.thumbnail((89, 86), Image.LANCZOS)
         root.icon = ImageTk.PhotoImage(image)
     else:
         root.icon = None
