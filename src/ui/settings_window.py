@@ -221,12 +221,6 @@ class SettingsWindow(tk.Toplevel):
 
             self.rebuild_window("General")
 
-        #button_frame = ttk.Frame(self.content_frame, padding=(24, 12, 24, 8))
-        #button_frame.pack(anchor="w")
-
-        #ttk.Button(button_frame, text="Save", command=save_settings).pack(side="left", padx=(0, 8))
-
-
         def restore_general():
             store.reset_popup_settings()
             app_folder_var.set(store.get_setting("general_appfolder", "Default"))
