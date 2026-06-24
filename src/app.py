@@ -275,13 +275,33 @@ class GhostnoteApp(tk.Tk):
     # Section 4 : Viewer data + Selection behavior
 
     def load_entries(self):
+        from datetime import timedelta
+
+        if self.filter_mode == "Latest day":
+            latest = store.get_latest_entry_date()
+            self.start_date_filter = latest
+            self.end_date_filter = latest
+            self.filter_active = False
+
+        elif self.filter_mode == "Last 7 days":
+            today = datetime.now().date()
+            self.start_date_filter = (today - timedelta(days=6)).isoformat()
+            self.end_date_filter = today.isoformat()
+            self.filter_active = True
+
+        elif self.filter_mode == "Last 30 days":
+            today = datetime.now().date()
+            self.start_date_filter = (today - timedelta(days=29)).isoformat()
+            self.end_date_filter = today.isoformat()
+            self.filter_active = True
+
         self.entry_table.delete(*self.entry_table.get_children())
         self.update_filter_button_states()
 
         current_date = None
         current_parent = None
-
         first_group = True
+
         for entry in store.get_entries(self.start_date_filter, self.end_date_filter, self.search_filter):
             entry_date = self.format_date(entry["created_at"])
 
