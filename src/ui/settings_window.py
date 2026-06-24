@@ -18,6 +18,20 @@ class SettingsWindow(tk.Toplevel):
         self.title("GhostNote Settings")
         self.geometry("800x520")
         self.minsize(800, 520)
+        self.update_idletasks()
+
+        parent_x = parent.winfo_x()
+        parent_y = parent.winfo_y()
+        parent_width = parent.winfo_width()
+        parent_height = parent.winfo_height()
+
+        width = 800
+        height = 520
+
+        x = parent_x + (parent_width - width) // 2
+        y = parent_y + (parent_height - height) // 2
+
+        self.geometry(f"{width}x{height}+{x}+{y}")
         self.protocol("WM_DELETE_WINDOW", self.close_window)
 
         if hasattr(parent, "window_icon_path") and parent.window_icon_path.exists():
