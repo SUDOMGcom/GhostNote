@@ -372,22 +372,48 @@ class SettingsWindow(tk.Toplevel):
 
         prompt_var = tk.StringVar(value=store.get_setting("popup_prompt", "What are you working on?"))
         categories_var = tk.StringVar(value=store.get_setting("popup_categories", ""))
+        categories_enabled_var = tk.BooleanVar(value=store.get_setting("popup_categories_enabled", "false") == "true")
         info_character = " \U0001F6C8"
 
         ttk.Label(customize_frame, text="Prompt question:").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
         ttk.Entry(customize_frame, textvariable=prompt_var, width=40).grid(row=0, column=1, sticky="ew", padx=(0, 0), pady=6)
-        ttk.Label(customize_frame, text="Categories:").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(customize_frame, textvariable=categories_var, width=40).grid(row=1, column=1, sticky="ew", padx=(0, 0), pady=6)
-        info_label = ttk.Label(customize_frame, text=info_character, font=("Segoe UI", 14))
-        info_label.grid(row=1, column=2, sticky="e", padx=(0, 12), pady=(0, 0))
+
+        ttk.Label(customize_frame, text="Categories:").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=6)
+
+        categories_row = ttk.Frame(customize_frame)
+        categories_row.grid(row=1, column=1, sticky="ew", pady=6)
+        categories_row.columnconfigure(1, weight=1)
+
+        categories_toggle = tk.Button(categories_row, width=10, relief="flat", bd=1, bg=self.theme["button_bg"], fg=self.theme["button_fg"], activeforeground=self.theme["button_fg"], activebackground=self.theme["button_hover"])
+        categories_toggle.grid(row=0, column=0, sticky="w", padx=(0, 8))
+
+        categories_entry = ttk.Entry(categories_row, textvariable=categories_var, width=40)
+        categories_entry.grid(row=0, column=1, sticky="ew")
+
+        info_label = ttk.Label(categories_row, text=info_character, font=("Segoe UI", 14))
+        info_label.grid(row=0, column=2, sticky="e", padx=(8, 0))
         ToolTip(info_label, "Comma-separated categories\nExample: Automation, Training, Firefighting\nLeaving Blank removes Category Dropdown")
+
+        def update_category_state():
+            enabled = categories_enabled_var.get()
+            categories_toggle.config(text="Enabled" if enabled else "Disabled", bg=self.theme["button_bg"] if enabled else "#a62828", activebackground=self.theme["button_hover"] if enabled else "#c03030")
+            categories_entry.config(state="normal" if enabled else "disabled")
+            info_label.config(foreground=self.theme["text"] if enabled else self.theme["muted"])
+
+        def toggle_categories():
+            categories_enabled_var.set(not categories_enabled_var.get())
+            update_category_state()
+
+        categories_toggle.config(command=toggle_categories)
+        update_category_state()
 
         def save_customize():
             store.set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
+            store.set_setting("popup_categories_enabled", "true" if categories_enabled_var.get() else "false")
             store.set_setting("popup_categories", categories_var.get().strip())
 
         self.page_save_commands["Customize Popup"] = save_customize
-        self.page_restore_keys["Customize Popup"] = ["popup_prompt", "popup_categories"]
+        self.page_restore_keys["Customize Popup"] = ["popup_prompt", "popup_categories", "popup_categories_enabled"]
 
 
     def show_reminders_page(self):

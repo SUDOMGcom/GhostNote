@@ -74,7 +74,8 @@ class PromptWindow:
 
         #get popup customization
         popup_prompt = get_setting("popup_prompt", "What are you working on?")
-        popup_categories = [c.strip() for c in get_setting("popup_categories", "").split(",") if c.strip()]
+        popup_categories_enabled = get_setting("popup_categories_enabled", "false") == "true"
+        popup_categories = [c.strip() for c in get_setting("popup_categories", "").split(",") if c.strip()] if popup_categories_enabled else []
 
         # Label
         label = tk.Label(content_frame, text=popup_prompt, bg=theme["bg"], fg=theme["text"], font=("TkDefaultFont", 10, "bold"))

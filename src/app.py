@@ -381,7 +381,9 @@ class GhostnoteApp(tk.Tk):
 
         popup = self.add_ghostnote_popup = tk.Toplevel(self); popup.withdraw(); popup.overrideredirect(True)
         theme = config.get_theme(); now = datetime.now(); popup.configure(bg=theme["bg"])
-        popup_categories = [c.strip() for c in store.get_setting("popup_categories", "").split(",") if c.strip()]
+        categories_enabled = store.get_setting("popup_categories_enabled", "false") == "true"
+        popup_categories = [c.strip() for c in store.get_setting("popup_categories", "").split(",") if c.strip()] if categories_enabled else []
+
         category_var = tk.StringVar(value=popup_categories[0] if popup_categories else "")
         date_var = tk.StringVar(value=now.strftime("%Y-%m-%d")); time_var = tk.StringVar(value=now.strftime("%I:%M %p"))
         border = tk.Frame(popup, bg="#d0d0d0")
@@ -499,11 +501,13 @@ class GhostnoteApp(tk.Tk):
         popup.note_var = tk.StringVar(value=content_text)
         popup.category_var = tk.StringVar(value=current_tag)
 
+        categories_enabled = store.get_setting("popup_categories_enabled", "false") == "true"
+
         popup_categories = [
             c.strip()
             for c in store.get_setting("popup_categories", "").split(",")
             if c.strip()
-        ]
+        ] if categories_enabled else []
 
         if current_tag and current_tag not in popup_categories:
             popup_categories.append(current_tag)
@@ -522,12 +526,13 @@ class GhostnoteApp(tk.Tk):
         time_entry = ttk.Entry(form, textvariable=popup.time_var, width=10, cursor="xterm")
         time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8))
 
-        ttk.Label(form, text="Category").grid(row=0, column=4, sticky="w", padx=(0, 4))
+        if categories_enabled:
+            ttk.Label(form, text="Category").grid(row=0, column=4, sticky="w", padx=(0, 4))
 
-        if popup_categories: category_entry = ttk.Combobox(form, textvariable=popup.category_var, values=popup_categories, width=18)
-        else: category_entry = ttk.Entry(form, textvariable=popup.category_var, width=18)
+            if popup_categories: category_entry = ttk.Combobox(form, textvariable=popup.category_var, values=popup_categories, width=18)
+            else: category_entry = ttk.Entry(form, textvariable=popup.category_var, width=18)
 
-        category_entry.grid(row=0, column=5, sticky="w")
+            category_entry.grid(row=0, column=5, sticky="w")
 
         ttk.Label(form, text="Note").grid(row=1, column=0, sticky="w", pady=(8, 0))
         note_entry = tk.Entry(form, textvariable=popup.note_var, width=45, bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["entry_fg"], highlightthickness=2, highlightbackground="#ffffff", highlightcolor="#4a90e2", relief="solid", borderwidth=1)
