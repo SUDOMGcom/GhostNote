@@ -8,6 +8,7 @@ import src.config as config
 from datetime import datetime
 import src.sqlite_store as store
 from src.ui.tooltip import ToolTip
+from src.ui.settings_window import SettingsWindow
 
 class GhostnoteApp(tk.Tk):
     # Section 1 : App Startup / Window Setup
@@ -160,18 +161,18 @@ class GhostnoteApp(tk.Tk):
         button_frame.pack(side=tk.RIGHT)
 
         #customize button
-        customize_frame = ttk.Frame(button_frame, width=100, height=34)
-        customize_frame.pack_propagate(False)
-        customize_frame.pack(side=tk.LEFT, padx=4)
-        customize_button = ttk.Button(customize_frame, text="🛠 Customize", padding=0, command=self.open_customize_modal)
-        customize_button.pack(fill=tk.BOTH, expand=True)
-        ToolTip(customize_button, "Customize Popup")
+        #customize_frame = ttk.Frame(button_frame, width=100, height=34)
+        #customize_frame.pack_propagate(False)
+        #customize_frame.pack(side=tk.LEFT, padx=4)
+        #customize_button = ttk.Button(customize_frame, text="🛠 Customize", padding=0, command=self.open_customize_modal)
+        #customize_button.pack(fill=tk.BOTH, expand=True)
+        #ToolTip(customize_button, "Customize Popup")
 
         #settings button
         settings_frame = ttk.Frame(button_frame, width=100, height=34)
         settings_frame.pack_propagate(False)
         settings_frame.pack(side=tk.LEFT, padx=4)
-        settings_button = ttk.Button(settings_frame, text="⚙ Settings", padding=0, command=self.open_settings_modal)
+        settings_button = ttk.Button(settings_frame, text="⚙ Settings", padding=0, command=lambda: SettingsWindow(self, start_page="General"))
         settings_button.pack(fill=tk.BOTH, expand=True)
         ToolTip(settings_button, "Settings")
 
@@ -811,177 +812,7 @@ class GhostnoteApp(tk.Tk):
 
         modal.deiconify()
 
-    # Section 7 : Header button features (in order)
-
-    def open_customize_modal(self):
-        modal = tk.Toplevel(self); modal.withdraw()
-        theme = config.get_theme()
-        modal.configure(bg=theme["bg"])
-        modal.title("Customize Popup")
-        modal_width = 400
-        modal_height = 300
-        modal.iconbitmap(self.window_icon_path)
-        self.center_modal(modal, modal_width, modal_height)
-
-        modal.transient(self)
-        modal.grab_set()
-
-        ttk.Label(modal, text="Customize Popup", justify="center", font=("Segoe UI", 32, "bold")).pack(pady=(20, 10))
-
-        customize_frame = ttk.Frame(modal, padding=12)
-        customize_frame.pack(fill=tk.BOTH, expand=True)
-
-        prompt_var = tk.StringVar(value=store.get_setting("popup_prompt", "What are you working on?"))
-        categories_var = tk.StringVar(value=store.get_setting("popup_categories", ""))
-        info_character = " \U0001F6C8"
-
-        ttk.Label(customize_frame, text="Prompt question").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(customize_frame, textvariable=prompt_var, width=40).grid(row=0, column=1, sticky="ew", padx=(0, 0), pady=6)
-        ttk.Label(customize_frame, text="Categories").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(customize_frame, textvariable=categories_var, width=40).grid(row=1, column=1, sticky="ew", padx=(0, 0), pady=6)
-        info_label = ttk.Label(customize_frame, text=info_character, font=("Segoe UI", 14))
-        info_label.grid(row=1, column=2, sticky="e", padx=(0, 12), pady=(0, 0))
-        ToolTip(info_label, "Comma-separated categories\nExample: Automation, Training, Firefighting\nLeaving Blank removes Category Dropdown")
-
-        def save_customize():
-            store.set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
-            store.set_setting("popup_categories", categories_var.get().strip())
-            modal.destroy()
-
-        def restore_customize():
-            store.reset_popup_settings()
-            prompt_var.set(store.get_setting("popup_prompt", "What are you working on?"))
-            categories_var.set(store.get_setting("popup_categories", ""))
-
-        button_frame = ttk.Frame(modal)
-        button_frame.pack(pady=20)
-        ttk.Button(button_frame, text="Save", command=save_customize).pack(side="left", padx=4)
-        ttk.Button(button_frame, text="Restore Defaults", command=restore_customize).pack(side="left", padx=4)
-
-        modal.deiconify()
-
-    def open_settings_modal(self):
-        modal = tk.Toplevel(self)
-        modal.withdraw()
-
-        theme = config.get_theme()
-        modal.configure(bg=theme["bg"])
-        modal.title("Settings")
-        modal_width = 600
-        modal_height = 300
-        modal.iconbitmap(self.window_icon_path)
-        self.center_modal(modal, modal_width, modal_height)
-
-        modal.transient(self)
-        modal.grab_set()
-
-        ttk.Label(modal, text="Settings", font=("Segoe UI", 40, "bold")).pack(pady=(20, 10))
-
-        settings_frame = ttk.Frame(modal, padding=12)
-        settings_frame.pack(fill=tk.BOTH, expand=True)
-
-        settings = config.load_settings()
-
-        app_folder_var = tk.StringVar(value=settings["app_folder"])
-        db_file_var = tk.StringVar(value=settings["db_file"])
-        theme_var = tk.StringVar(value=settings["theme"])
-
-        def browse_app_folder():
-            path = filedialog.askdirectory(initialdir=app_folder_var.get())
-            if path: app_folder_var.set(path)
-
-        def browse_db_file():
-            path = filedialog.askopenfilename(initialdir=app_folder_var.get(), filetypes=[("SQLite Database", "*.db"), ("All Files", "*.*")])
-            if path: db_file_var.set(path)
-
-        # APP FOLDER
-        ttk.Label(settings_frame, text="APP_FOLDER:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(settings_frame, textvariable=app_folder_var, width=60, state="readonly").grid(row=0, column=1, sticky="w", pady=2)
-        ttk.Button(settings_frame, text="Browse", command=browse_app_folder).grid(row=0, column=2, padx=0, pady=4)
-
-        # DB FILE
-        ttk.Label(settings_frame, text="DB_FILE:", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="e", padx=(0, 12), pady=1)
-        ttk.Entry(settings_frame, textvariable=db_file_var, width=60, state="readonly").grid(row=1, column=1, sticky="w", pady=2)
-        ttk.Button(settings_frame, text="Browse", command=browse_db_file).grid(row=1, column=2, padx=0, pady=4)
-
-        # THEME
-        ttk.Label(settings_frame, text="THEME:", font=("Segoe UI", 10, "bold")).grid(row=2, column=0, sticky="e", padx=(0, 12), pady=1)
-        theme_button_frame = ttk.Frame(settings_frame)
-        theme_button_frame.grid(row=2, column=1, sticky="w")
-        ttk.Radiobutton(theme_button_frame, text="Light", variable=theme_var, value="light").pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
-
-        #settings_frame.columnconfigure(1, weight=1)
-
-        def save_and_close():
-            settings["app_folder"] = app_folder_var.get().strip()
-            settings["db_file"] = db_file_var.get().strip()
-            settings["theme"] = theme_var.get()
-
-            config.save_settings(settings)
-            config.SETTINGS = config.load_settings()
-            config.APP_FOLDER = Path(config.SETTINGS["app_folder"])
-            config.DB_FILE = Path(config.SETTINGS["db_file"])
-            config.THEME = config.SETTINGS["theme"]
-
-            self.apply_theme()
-            modal.destroy()
-
-        settings_frame.columnconfigure(2, weight=1)
-
-        button_frame = ttk.Frame(modal)
-        button_frame.pack(pady=20)
-        ttk.Button(button_frame, text="Save", command=save_and_close).pack(side="left", padx=4)
-        ttk.Button(button_frame, text="About Us", command=self.open_about_us_modal).pack(side="left", padx=4)
-        modal.deiconify()
-
-    def open_about_us_modal(self):
-        modal = tk.Toplevel(self); modal.withdraw()
-        theme = config.get_theme()
-        modal.configure(bg=theme["bg"])
-        modal_width = 400; modal_height = 500
-        modal.title("About SUDOMG!")
-
-        if self.window_icon_path.exists():
-            modal.iconbitmap(self.window_icon_path)
-
-        self.center_modal(modal, modal_width, modal_height)
-        modal.transient(self)
-        modal.grab_set()
-        modal.resizable(False, False)
-
-        ttk.Label(modal, text="SUDOMG!", font=("Segoe UI", 16, "bold")).place(relx=0.5, anchor="n") # Title
-
-        icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
-        bg_path = icon_root / "founders.png"
-
-        if bg_path.exists():
-            bg_image = Image.open(bg_path)
-            bg_image = bg_image.resize((modal_width - 80, 155), Image.LANCZOS)
-            modal.bg_photo = ImageTk.PhotoImage(bg_image)
-            bg_label = tk.Label(modal, image=modal.bg_photo, bg=theme["bg"], borderwidth=0, highlightthickness=0)
-            bg_label.place(relx=0.5, y=185, anchor="s") #location of image
-
-        about_text = (
-            "Built by admins. Powered by frustration.\n\n"
-            "SUDOMG! started when two IT admins got tired of wrestling "
-            "with the same problems day after day. Rather than complaining "
-            "about them, we built solutions.\n\n"
-            "Every app we create comes from real experience in the trenches "
-            "of IT—automating repetitive work, simplifying complex tasks, "
-            "and eliminating unnecessary headaches.\n\n"
-            "If our tools save you time, reduce your stress, or make you "
-            "wonder how you ever lived without them, we've done our job.\n\n"
-            "SUDOMG! — Tools so useful they'll make you say "
-            "'SUDO-M-GEE!'"
-        )
-
-        ttk.Label(modal, text=about_text, justify="center", wraplength=350 ).place( relx=0.5, y=300, width=360, anchor="center") #about label
-        ttk.Button(modal, text="Close", command=modal.destroy).place(relx=0.5, y=465, anchor="center") #Close button
-
-        modal.deiconify()
-
-    # Section 8 : Edit popup helpers
+    # Section 7 : Edit popup helpers
 
     def position_edit_menu(self):
         popup = getattr(self, "edit_ghostnote_popup", None)

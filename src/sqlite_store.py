@@ -68,9 +68,23 @@ def reset_popup_settings():
         conn.execute("DELETE FROM settings WHERE key LIKE 'popup_%'")
         conn.commit()
 
-def restore_default_settings():
+def restore_default_settings(keys="*"):
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
-        conn.execute("DELETE FROM settings")
+        if keys == "*":
+            conn.execute("""
+                UPDATE settings
+                SET value = default_value
+            """)
+        else:
+            if isinstance(keys, str):
+                keys = [keys]
+
+            conn.executemany("""
+                UPDATE settings
+                SET value = default_value
+                WHERE key = ?
+            """, [(key,) for key in keys])
+
         conn.commit()
 
 def update_entry(entry_id, content, created_at, tags=None):

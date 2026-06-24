@@ -5,9 +5,10 @@ from PIL import Image, ImageTk
 from src.ui.tooltip import ToolTip
 import src.config as config
 import src.sqlite_store as store
+import webbrowser
 
 class SettingsWindow(tk.Toplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, start_page="General"):
         super().__init__(parent)
 
         self.parent = parent
@@ -15,16 +16,29 @@ class SettingsWindow(tk.Toplevel):
         self.nav_buttons = {}
 
         self.title("GhostNote Settings")
-        self.geometry("800x420")
-        self.minsize(750, 450)
+        self.geometry("800x520")
+        self.minsize(800, 520)
         self.protocol("WM_DELETE_WINDOW", self.close_window)
 
         if hasattr(parent, "window_icon_path") and parent.window_icon_path.exists():
             self.iconbitmap(parent.window_icon_path)
 
+        self.current_page = None
+        self.page_save_commands = {}
+        self.page_restore_keys = {}
+        self.page_ignore_buttons = set()
+
+        self.page_ignore_buttons = {
+            "About",
+            "Reminders",
+            "Work Hours",
+            "Integrations",
+            "AI Settings",
+        }
+
         self.apply_theme()
         self.build_layout()
-        self.select_page("General")
+        self.select_page(start_page)
 
     def build_layout(self):
         self.nav_frame = tk.Frame(self, bg=self.theme["panel"], width=180)
@@ -50,6 +64,14 @@ class SettingsWindow(tk.Toplevel):
 
         self.content_frame = tk.Frame(self, bg=self.theme["bg"])
         self.content_frame.pack(side="right", fill="both", expand=True)
+
+        self.page_frame = tk.Frame(self.content_frame, bg=self.theme["bg"])
+        self.page_frame.pack(fill="both", expand=True)
+
+        self.footer_frame = ttk.Frame(self.content_frame)
+        self.footer_frame.pack(fill="x", pady=12)
+
+        self.build_footer_buttons()
 
         self.pages = {
             "General": self.show_general_page,
@@ -121,6 +143,27 @@ class SettingsWindow(tk.Toplevel):
         self.build_layout()
         self.select_page(page_name)
 
+    def build_footer_buttons(self):
+        button_frame = ttk.Frame(self.footer_frame)
+        button_frame.pack()
+
+        self.save_button = ttk.Button(button_frame, text="Save", command=self.save_current_page)
+        self.save_button.pack(side="left", padx=4)
+
+        self.restore_button = ttk.Button(button_frame, text="Restore Defaults", command=self.restore_current_page)
+        self.restore_button.pack(side="left", padx=4)
+
+        self.restore_all_button = ttk.Button(button_frame, text="Restore All Defaults", command=self.restore_all_defaults)
+        self.restore_all_button.pack(side="left", padx=4)
+
+    def update_footer_buttons(self):
+        hidden = self.current_page in self.page_ignore_buttons
+
+        if hidden: self.footer_frame.pack_forget()
+        else:
+            if not self.footer_frame.winfo_manager():
+                self.footer_frame.pack(fill="x", pady=12)
+
     def close_window(self):
         self.destroy()
         if isinstance(self.parent, tk.Tk) and not self.parent.winfo_viewable():
@@ -135,16 +178,40 @@ class SettingsWindow(tk.Toplevel):
                 activebackground=self.theme["button_hover"],
                 activeforeground=self.theme["button_fg"],
             )
-
+        self.current_page = page_name
+        self.update_footer_buttons()
         self.pages[page_name]()
 
     def clear_content(self):
-        for widget in self.content_frame.winfo_children():
+        for widget in self.page_frame.winfo_children():
             widget.destroy()
+
+    def make_scrollable_content(self):
+        canvas = tk.Canvas(self.page_frame, bg=self.theme["bg"], highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.page_frame, orient="vertical", command=canvas.yview)
+        scroll_frame = ttk.Frame(canvas)
+
+        window_id = canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+
+        scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.bind("<Configure>", lambda e: canvas.itemconfigure(window_id, width=e.width))
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        return scroll_frame
 
     def page_title(self, title, subtitle=None):
         tk.Label(
-            self.content_frame,
+            self.page_frame,
             text=title,
             bg=self.theme["bg"],
             fg=self.theme["text"],
@@ -153,7 +220,7 @@ class SettingsWindow(tk.Toplevel):
 
         if subtitle:
             tk.Label(
-                self.content_frame,
+                self.page_frame,
                 text=subtitle,
                 bg=self.theme["bg"],
                 fg=self.theme["muted"],
@@ -162,17 +229,31 @@ class SettingsWindow(tk.Toplevel):
                 justify="left",
             ).pack(anchor="w", padx=24, pady=(0, 18))
 
+    def save_current_page(self):
+        command = self.page_save_commands.get(self.current_page)
+        if command:
+            command()
+            self.rebuild_window(self.current_page)
+
+    def restore_current_page(self):
+        keys = self.page_restore_keys.get(self.current_page)
+        if keys:
+            store.restore_default_settings(keys)
+            self.rebuild_window(self.current_page)
+
+    def restore_all_defaults(self):
+        store.restore_default_settings()
+        self.rebuild_window(self.current_page)
+
     def show_general_page(self):
         self.clear_content()
         self.page_title("General", "Basic app settings for GhostNote.")
 
-        settings = config.load_settings()
+        app_folder_var = tk.StringVar(value=store.get_setting("general_appfolder", ""))
+        db_file_var = tk.StringVar(value=store.get_setting("general_dbfile", ""))
+        theme_var = tk.StringVar(value=store.get_setting("general_theme", "dark"))
 
-        app_folder_var = tk.StringVar(value=settings["app_folder"])
-        db_file_var = tk.StringVar(value=settings["db_file"])
-        theme_var = tk.StringVar(value=settings["theme"])
-
-        form = ttk.Frame(self.content_frame, padding=(24, 8, 24, 8))
+        form = ttk.Frame(self.page_frame, padding=(24, 8, 24, 8))
         form.columnconfigure(1, weight=1)
         form.pack(fill=tk.BOTH, expand=True, anchor="nw")
 
@@ -206,39 +287,37 @@ class SettingsWindow(tk.Toplevel):
         ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
 
         def save_general():
-            settings["app_folder"] = app_folder_var.get().strip()
-            settings["db_file"] = db_file_var.get().strip()
-            settings["theme"] = theme_var.get()
+            app_folder = app_folder_var.get().strip()
+            db_file = db_file_var.get().strip()
+            theme = theme_var.get()
 
+            # SQLite copy = visual/display/settings UI value
+            store.set_setting("general_appfolder", app_folder)
+            store.set_setting("general_dbfile", db_file)
+            store.set_setting("general_theme", theme)
+
+            # config.json copy = real source of truth for DB location
+            settings = config.load_settings()
+            settings["app_folder"] = app_folder
+            settings["db_file"] = db_file
             config.save_settings(settings)
+
             config.SETTINGS = config.load_settings()
             config.APP_FOLDER = Path(config.SETTINGS["app_folder"])
             config.DB_FILE = Path(config.SETTINGS["db_file"])
-            config.THEME = config.SETTINGS["theme"]
+            config.THEME = theme
 
             if hasattr(self.parent, "apply_theme"):
                 self.parent.apply_theme()
 
-            self.rebuild_window("General")
-
-        def restore_general():
-            store.reset_popup_settings()
-            app_folder_var.set(store.get_setting("general_appfolder", "Default"))
-            db_file_var.set(store.get_setting("general_dbfile", "")) #this will be different
-            if hasattr(self.parent, "apply_theme"): self.parent.apply_theme()
-            self.rebuild_window("General")
-
-        button_frame = ttk.Frame(self.content_frame)
-        button_frame.pack(pady=20)
-        ttk.Button(button_frame, text="Save", command=save_general).pack(side="left", padx=4)
-        ttk.Button(button_frame, text="Restore Defaults", command=restore_general, state="disabled").pack(side="left", padx=4)
-        ttk.Button(button_frame, text="Restore All Defaults", state="disabled").pack(side="left", padx=4)
+        self.page_save_commands["General"] = save_general
+        self.page_restore_keys["General"] = ["general_appfolder", "general_dbfile", "general_theme"]
 
     def show_customize_popup_page(self):
         self.clear_content()
         self.page_title("Customize Popup", "Customize the Add GhostNote popup behavior and appearance.")
 
-        customize_frame = ttk.Frame(self.content_frame, padding=12)
+        customize_frame = ttk.Frame(self.page_frame, padding=12)
         customize_frame.columnconfigure(1, weight=1)
         customize_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -257,40 +336,178 @@ class SettingsWindow(tk.Toplevel):
         def save_customize():
             store.set_setting("popup_prompt", prompt_var.get().strip() or "What are you working on?")
             store.set_setting("popup_categories", categories_var.get().strip())
-            self.rebuild_window("Customize Popup")
 
-        def restore_customize():
-            store.reset_popup_settings()
-            prompt_var.set(store.get_setting("popup_prompt", "What are you working on?"))
-            categories_var.set(store.get_setting("popup_categories", ""))
-
-        button_frame = ttk.Frame(self.content_frame)
-        button_frame.pack(pady=20)
-        ttk.Button(button_frame, text="Save", command=save_customize).pack(side="left", padx=4)
-        ttk.Button(button_frame, text="Restore Defaults", command=restore_customize).pack(side="left", padx=4)
-        ttk.Button(button_frame, text="Restore All Defaults", state="disabled").pack(side="left", padx=4)
+        self.page_save_commands["Customize Popup"] = save_customize
+        self.page_restore_keys["Customize Popup"] = ["popup_prompt", "popup_categories"]
 
 
     def show_reminders_page(self):
         self.clear_content()
         self.page_title("Reminders", "Coming Soon: configure time-based and idle reminders.")
 
+        reminder_frame = ttk.Frame(self.page_frame, padding=12)
+        reminder_frame.columnconfigure(1, weight=1)
+        reminder_frame.pack(fill=tk.BOTH, expand=True)
+        icon_path = Path(__file__).resolve().parents[2] / "assets" / "teasers" / "Reminders.png"
+        if icon_path.exists():
+            reminder_icon = Image.open(icon_path)
+            reminder_icon = reminder_icon.resize((435, 324), Image.LANCZOS)
+            self.reminder_icon = ImageTk.PhotoImage(reminder_icon)
+            ttk.Label(reminder_frame, image=self.reminder_icon).pack(side=tk.LEFT, padx=(0, 0), expand=True)
+
     def show_work_hours_page(self):
         self.clear_content()
         self.page_title("Work Hours", "Coming Soon: define when GhostNote should prompt you.")
+
+        workHours_frame = ttk.Frame(self.page_frame, padding=12)
+        workHours_frame.columnconfigure(1, weight=1)
+        workHours_frame.pack(fill=tk.BOTH, expand=True)
+        icon_path = Path(__file__).resolve().parents[2] / "assets" / "teasers" / "WorkHours.png"
+        if icon_path.exists():
+            workHours_icon = Image.open(icon_path)
+            workHours_icon = workHours_icon.resize((435, 324), Image.LANCZOS)
+            self.workHours_icon = ImageTk.PhotoImage(workHours_icon)
+            ttk.Label(workHours_frame, image=self.workHours_icon).pack(side=tk.LEFT, padx=(0, 0), expand=True)
 
     def show_integrations_page(self):
         self.clear_content()
         self.page_title("Integrations", "Coming Soon: connect future local integrations.")
 
+        integrations_frame = ttk.Frame(self.page_frame, padding=12)
+        integrations_frame.columnconfigure(1, weight=1)
+        integrations_frame.pack(fill=tk.BOTH, expand=True)
+        icon_path = Path(__file__).resolve().parents[2] / "assets" / "teasers" / "Integrations.png"
+        if icon_path.exists():
+            integrations_icon = Image.open(icon_path)
+            integrations_icon = integrations_icon.resize((435, 324), Image.LANCZOS)
+            self.integrations_icon = ImageTk.PhotoImage(integrations_icon)
+            ttk.Label(integrations_frame, image=self.integrations_icon).pack(side=tk.LEFT, padx=(0, 0), expand=True)
+
     def show_ai_settings_page(self):
         self.clear_content()
         self.page_title("AI Settings", "Coming Soon: configure future Echoes and Signals features.")
 
+        ai_frame = ttk.Frame(self.page_frame, padding=12)
+        ai_frame.columnconfigure(1, weight=1)
+        ai_frame.pack(fill=tk.BOTH, expand=True)
+        icon_path = Path(__file__).resolve().parents[2] / "assets" / "teasers" / "AiSettings.png"
+        if icon_path.exists():
+            ai_icon = Image.open(icon_path)
+            ai_icon = ai_icon.resize((435, 324), Image.LANCZOS)
+            self.ai_icon = ImageTk.PhotoImage(ai_icon)
+            ttk.Label(ai_frame, image=self.ai_icon).pack(side=tk.LEFT, padx=(0, 0), expand=True)
+
     def show_about_page(self):
         self.clear_content()
-        self.page_title("About GhostNote", "Operational visibility for hidden work.")
+        about_Versiontext = (
+            f"GhostNote by SUDOMG!\n"
+            f"Version: {store.get_setting('about_version', '')}\n"
+            f"URL: {store.get_setting('about_url', '')}"
+        )
+        self.page_title("About GhostNote/SUDOMG!", about_Versiontext)
 
+        about_frame = self.make_scrollable_content()
+        about_frame.columnconfigure(0, weight=1)
+
+        brand_frame = ttk.Frame(about_frame)
+        brand_frame.grid(row=0, column=0, pady=(0, 20))
+
+        icon_path = Path(__file__).resolve().parents[2] / "assets" / "icons" / "ghostnote.png"
+
+        if icon_path.exists():
+            about_icon = Image.open(icon_path)
+            about_icon = about_icon.resize((32, 32), Image.LANCZOS)
+
+            self.about_icon = ImageTk.PhotoImage(about_icon)
+            ttk.Label(brand_frame, image=self.about_icon).pack(side=tk.LEFT, padx=(0, 0))
+
+        text_frame = ttk.Frame(brand_frame)
+        text_frame.pack(side=tk.LEFT)
+
+        tk.Label(text_frame, text="SUDOMG!", font=("Segoe UI", 7, "bold"), bg=self.theme["bg"], fg=self.theme["muted"]).pack(anchor="w")
+
+        title_frame = tk.Frame(text_frame, bg=self.theme["bg"])
+        title_frame.pack(anchor="w")
+
+        title_canvas = tk.Canvas(title_frame, bg=self.theme["bg"], highlightthickness=0, bd=0, width=185, height=28)
+        title_canvas.pack(anchor="w")
+
+        font = ("Segoe UI", 22, "bold")
+
+        for dx, dy in [(-1, -1), (-1, 0), (-1, 1), (0, -2), (0, 2), (1, -1), (1, 0), (1, 1)]:
+            title_canvas.create_text(0 + dx, 12 + dy, text="Ghost", font=font, fill=self.theme["title_outline"], anchor="w")
+            title_canvas.create_text(80 + dx, 12 + dy, text="Note", font=font, fill=self.theme["title_outline"], anchor="w")
+
+        title_canvas.create_text(0, 12, text="Ghost", font=font, fill=self.theme["title_ghost"], anchor="w")
+        title_canvas.create_text(80, 12, text="Note", font=font, fill=self.theme["title_note"], anchor="w")
+        ttk.Label(text_frame, text="Helping track your hidden work", font=("Segoe UI", 9)).pack(anchor="w")
+
+        about_GNtext = (
+            "The most important work often leaves no evidence.\n\n"
+            "Sysadmins solve dozens of problems every day that never become tickets,\n"
+            "projects, or reports. The quick fixes, troubleshooting, automation, interruptions,\n"
+            "and discoveries that keep systems running quietly disappear by the end of the day.\n\n"
+            "GhostNote helps you capture that hidden work as it happens. Not as a time tracker,productivity monitor,\n"
+            "or journal—but as operational visibility for the work that would otherwise be forgotten.\n\n"
+            "Built by IT professionals who spent more time solving problems than documenting them, GhostNote helps ensure your impact doesn't vanish simply because you were too busy doing the work."
+        )
+
+        ttk.Label(about_frame,text=about_GNtext,justify="center",wraplength=550).grid(row=1,column=0,padx=20,pady=(0, 20),sticky="ew")
+
+
+
+
+        ttk.Separator(about_frame, orient="horizontal").grid(row=2, column=0, sticky="ew", padx=20, pady=20)
+        ttk.Label(about_frame, text="The creators of GhostNote: SUDOMG!", font=("Segoe UI", 16, "bold")).grid(row=3, column=0, pady=(0, 15))
+
+        icon_root = Path(__file__).resolve().parents[2] / "assets" / "icons"
+        bg_path = icon_root / "founders.png"
+
+        image_label = tk.Label(about_frame, bg=self.theme["bg"], borderwidth=0, highlightthickness=0)
+        image_label.grid(row=4, column=0, sticky="ew", pady=(0, 20))
+
+        def resize_about_image(event=None):
+            if not bg_path.exists(): return
+
+            available_width = min(image_label.winfo_width(), 450)
+            if available_width <= 1: return
+
+            original = Image.open(bg_path)
+            ratio = available_width / original.width
+            new_height = int(original.height * ratio)
+
+            resized = original.resize((available_width, new_height), Image.LANCZOS)
+
+            about_frame.bg_photo = ImageTk.PhotoImage(resized)
+            image_label.configure(image=about_frame.bg_photo)
+
+        image_label.bind("<Configure>", resize_about_image)
+
+        about_text = (
+            "Built by admins. Powered by frustration.\n\n"
+            "SUDOMG! started when two IT admins got tired of wrestling "
+            "with the same problems day after day. Rather than complaining "
+            "about them, we built solutions.\n\n"
+            "Every app we create comes from real experience in the trenches "
+            "of IT—automating repetitive work, simplifying complex tasks, "
+            "and eliminating unnecessary headaches.\n\n"
+            "If our tools save you time, reduce your stress, or make you "
+            "wonder how you ever lived without them, we've done our job.\n\n"
+            "SUDOMG! — Tools so useful they'll make you say "
+            "'SUDO-M-GEE!'"
+        )
+
+        ttk.Label(about_frame, text=about_text, justify="center", wraplength=550).grid(row=5, column=0, padx=20, pady=(0, 20), sticky="ew" )
+
+        url = store.get_setting("about_sudomg_url", "")
+        url_label = tk.Label(about_frame, text=url, fg="#4da6ff", cursor="hand2", bg=self.theme["bg"], font=("Segoe UI", 9, "underline"))
+        url_label.grid(row=6, column=0, pady=(0, 20))
+
+        url_label.bind("<Button-1>", lambda e: webbrowser.open(url))
+        url_label.bind("<Enter>", lambda e: url_label.configure(fg="#80c1ff"))
+        url_label.bind("<Leave>", lambda e: url_label.configure(fg="#4da6ff"))
+
+        resize_about_image()
 
 if __name__ == "__main__":
     root = tk.Tk()

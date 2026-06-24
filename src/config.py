@@ -2,12 +2,10 @@ from pathlib import Path
 import json
 
 DEFAULT_APP_FOLDER = Path.home() / "Documents" / "GhostNote"
-SETTINGS_FILE = DEFAULT_APP_FOLDER / "settings.json"
+DATABASE_CONFIG_FILE = DEFAULT_APP_FOLDER / "database.json"
 
 DEFAULT_SETTINGS = {
-    "app_folder": str(DEFAULT_APP_FOLDER),
-    "db_file": str(DEFAULT_APP_FOLDER / "ghostnote.db"),
-    "theme": "dark"
+    "db_file": str(DEFAULT_APP_FOLDER / "ghostnote.db")
 }
 
 THEMES = {
@@ -64,11 +62,11 @@ THEMES = {
 def load_settings():
     DEFAULT_APP_FOLDER.mkdir(parents=True, exist_ok=True)
 
-    if not SETTINGS_FILE.exists():
+    if not DATABASE_CONFIG_FILE.exists():
         save_settings(DEFAULT_SETTINGS)
         return DEFAULT_SETTINGS.copy()
 
-    with SETTINGS_FILE.open("r", encoding="utf-8") as file:
+    with DATABASE_CONFIG_FILE.open("r", encoding="utf-8") as file:
         saved_settings = json.load(file)
 
     return {**DEFAULT_SETTINGS, **saved_settings}
@@ -77,14 +75,20 @@ def load_settings():
 def save_settings(settings):
     DEFAULT_APP_FOLDER.mkdir(parents=True, exist_ok=True)
 
-    with SETTINGS_FILE.open("w", encoding="utf-8") as file:
+    with DATABASE_CONFIG_FILE.open("w", encoding="utf-8") as file:
         json.dump(settings, file, indent=4)
 
 def get_theme():
-    return THEMES.get(THEME, THEMES["dark"])
+    try:
+        from src.sqlite_store import get_setting
+        theme_name = get_setting("general_theme", "dark")
+    except Exception:
+        theme_name = "dark"
+
+    return THEMES.get(theme_name, THEMES["dark"])
 
 SETTINGS = load_settings()
 
-APP_FOLDER = Path(SETTINGS["app_folder"])
+APP_FOLDER = DEFAULT_APP_FOLDER
 DB_FILE = Path(SETTINGS["db_file"])
-THEME = SETTINGS["theme"]
+THEME = "dark"
