@@ -403,14 +403,14 @@ class GhostnoteApp(tk.Tk):
             note_row = 2
         else: note_row = 1
 
-        note_entry = ttk.Entry(form, textvariable=note_var, width=46)
+        note_entry = tk.Entry(form, textvariable=note_var, width=46, bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["entry_fg"], highlightthickness=2, highlightbackground="#ffffff", highlightcolor="#4a90e2", relief="solid", borderwidth=1)
         note_entry.grid(row=note_row, column=0, columnspan=4, sticky="ew", pady=(8, 0))
 
         def clear_placeholder(event=None):
             nonlocal placeholder_active
             if placeholder_active:
                 note_var.set("")
-                note_entry.configure(style="TEntry")
+                note_entry.configure(fg=theme["entry_fg"])
                 placeholder_active = False
 
         def force_field_focus(widget):
@@ -826,9 +826,24 @@ class GhostnoteApp(tk.Tk):
         modal.transient(self)
         modal.grab_set()
 
-        ttk.Label(modal, text="Ai Analyze", font=("Segoe UI", 16, "bold")).pack(pady=(20, 10))
-        ttk.Label(modal, text="Coming Soon!").pack(pady=10)
-        ttk.Button(modal, text="Close", command=modal.destroy).pack(pady=20)
+        ai_frame = ttk.Frame(modal, padding=12)
+        ai_frame.columnconfigure(1, weight=1)
+        ai_frame.pack(fill=tk.BOTH, expand=True)
+        icon_path = Path(__file__).resolve().parents[1] / "assets" / "teasers" / "AiSettings.png"
+        if icon_path.exists():
+            image = Image.open(icon_path)
+            image = image.resize((360, 270), Image.LANCZOS)
+            self.ai_modal_icon = ImageTk.PhotoImage(image)
+            image_label = tk.Label(modal, image=self.ai_modal_icon, bg=theme["bg"], bd=0, highlightthickness=0)
+            image_label.pack(expand=True, pady=(0, 0))
+
+        title = ttk.Label(modal, text="AI Analyze", font=("Segoe UI", 16, "bold"))
+        title.place(relx=.5, y=20, anchor="n")
+
+        coming = ttk.Label(modal, text="Coming Soon!")
+        coming.place(relx=.5, y=55, anchor="n")
+
+        ttk.Button(modal, text="Close", command=modal.destroy).place(relx=.5, rely=.95, anchor="s")
 
         modal.deiconify()
 

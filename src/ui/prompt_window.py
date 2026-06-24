@@ -95,11 +95,11 @@ class PromptWindow:
         entry_wrap = tk.Frame(entry_border, bg=theme["entry_bg"])
         entry_wrap.pack(fill="x", padx=1, pady=1)
 
-        self.entry = tk.Entry(entry_wrap, font=("Segoe UI", 12), bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["text"], relief="flat", bd=0)
+        self.entry = tk.Entry(entry_wrap, font=("Segoe UI", 12), bg=theme["entry_bg"], fg=theme["entry_fg"], insertbackground=theme["entry_fg"], insertwidth=2, relief="flat", bd=0)
         self.entry.pack(fill="x", padx=8, pady=4)
 
         # Auto-focus typing cursor
-        self.root.after(100, self.entry.focus_force)
+        self.root.after(100, lambda: (self.entry.focus_force(), self.entry.icursor(tk.END)))
 
         # Fade in effect
         self.root.attributes("-alpha", 0.0)
