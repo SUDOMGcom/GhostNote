@@ -33,6 +33,7 @@ class SettingsWindow(tk.Toplevel):
         self.page_save_commands = {}
         self.page_restore_keys = {}
         self.page_ignore_buttons = set()
+        self.restore_state = None
 
         self.page_ignore_buttons = {
             "About",
@@ -167,17 +168,39 @@ class SettingsWindow(tk.Toplevel):
         self.select_page(page_name)
 
     def build_footer_buttons(self):
-        button_frame = ttk.Frame(self.footer_frame)
-        button_frame.pack()
-
-        self.save_button = ttk.Button(button_frame, text="Save", command=self.save_current_page)
+        self.footer_button_frame = ttk.Frame(self.footer_frame)
+        self.footer_button_frame.pack()
+        self.save_button = ttk.Button(self.footer_button_frame, text="Save", command=self.save_current_page)
         self.save_button.pack(side="left", padx=4)
-
-        self.restore_button = ttk.Button(button_frame, text="Restore Defaults", command=self.restore_current_page)
+        self.restore_button = ttk.Button(self.footer_button_frame, text="Restore Defaults", command=self.prompt_restore_current)
         self.restore_button.pack(side="left", padx=4)
-
-        self.restore_all_button = ttk.Button(button_frame, text="Restore All Defaults", command=self.restore_all_defaults)
+        self.restore_all_button = ttk.Button(self.footer_button_frame, text="Restore All Defaults", command=self.prompt_restore_all)
         self.restore_all_button.pack(side="left", padx=4)
+        self.confirm_label = ttk.Label(self.footer_button_frame, text="Confirm?", width=12, anchor="center")
+
+    def prompt_restore_current(self):
+        self.restore_state = "page"
+        self.save_button.pack_forget()
+        self.confirm_label.pack(side=tk.LEFT, padx=4, before=self.restore_button)
+        self.restore_button.config(text="Cancel", width=16, command=self.reset_restore_prompt)
+        self.restore_all_button.config(text="Restore", width=16, command=self.restore_current_page)
+
+    def prompt_restore_all(self):
+        self.restore_state = "all"
+        self.save_button.pack_forget()
+        self.confirm_label.pack(side=tk.LEFT, padx=4, before=self.restore_button)
+        self.restore_button.config(text="Restore All", width=16, command=self.restore_all_defaults)
+        self.restore_all_button.config(text="Cancel", width=16, command=self.reset_restore_prompt)
+
+    def reset_restore_prompt(self):
+        self.restore_state = None
+        self.confirm_label.pack_forget()
+
+        if not self.save_button.winfo_ismapped():
+            self.save_button.pack(side=tk.LEFT, padx=4, before=self.restore_button)
+
+        self.restore_button.config(text="Restore Defaults", width=16, command=self.prompt_restore_current)
+        self.restore_all_button.config(text="Restore All Defaults", width=16, command=self.prompt_restore_all)
 
     def update_footer_buttons(self):
         hidden = self.current_page in self.page_ignore_buttons
@@ -262,10 +285,12 @@ class SettingsWindow(tk.Toplevel):
         keys = self.page_restore_keys.get(self.current_page)
         if keys:
             store.restore_default_settings(keys)
+            self.restore_state = None
             self.rebuild_window(self.current_page)
 
     def restore_all_defaults(self):
         store.restore_default_settings()
+        self.restore_state = None
         self.rebuild_window(self.current_page)
 
     def show_general_page(self):
