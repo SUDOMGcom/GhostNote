@@ -3,6 +3,17 @@ import sqlite3
 from src.config import APP_FOLDER, DB_FILE
 
 #DB_FILE = APP_FOLDER / "ghostnote.db"
+DEFAULT_DB_SETTINGS = {
+    "general_theme": "dark",
+    "general_appfolder": str(APP_FOLDER),
+    "general_dbfile": str(DB_FILE),
+    "popup_prompt": "What are you working on?",
+    "popup_categories_enabled": "false",
+    "popup_categories": "",
+    "about_version": "1.0",
+    "about_url": "https://github.com/CaseyM915/GhostNote",
+    "about_sudomg_url": "https://www.sudomg.com/"
+}
 
 
 def ensure_db_exists():
@@ -18,7 +29,23 @@ def ensure_db_exists():
                 source TEXT
             )
         """)
-        conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+
+        conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, default_value TEXT NOT NULL)")
+
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(settings)").fetchall()]
+        if "default_value" not in columns: conn.execute("ALTER TABLE settings ADD COLUMN default_value TEXT NOT NULL DEFAULT ''")
+
+        conn.executemany(
+            "INSERT OR IGNORE INTO settings (key, value, default_value) VALUES (?, ?, ?)",
+            [(key, value, value) for key, value in DEFAULT_DB_SETTINGS.items()]
+        )
+
+        conn.executemany(
+            "UPDATE settings SET default_value = ? WHERE key = ? AND default_value = ''",
+            [(value, key) for key, value in DEFAULT_DB_SETTINGS.items()]
+        )
+
+        conn.commit()
 
 def add_entry(note_text, source="Right-Click", created_at=None, tags=""):
     note_text = note_text.strip()
@@ -64,35 +91,31 @@ def set_setting(key, value):
         conn.commit()
 
 def reset_popup_settings():
+    ensure_db_exists()
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
         conn.execute("DELETE FROM settings WHERE key LIKE 'popup_%'")
         conn.commit()
 
 def restore_default_settings(keys="*"):
+    ensure_db_exists()
+
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
         if keys == "*":
-            conn.execute("""
-                UPDATE settings
-                SET value = default_value
-            """)
+            conn.execute("UPDATE settings SET value = default_value")
         else:
-            if isinstance(keys, str):
-                keys = [keys]
-
-            conn.executemany("""
-                UPDATE settings
-                SET value = default_value
-                WHERE key = ?
-            """, [(key,) for key in keys])
+            if isinstance(keys, str): keys = [keys]
+            conn.executemany("UPDATE settings SET value = default_value WHERE key = ?", [(key,) for key in keys])
 
         conn.commit()
 
 def update_entry(entry_id, content, created_at, tags=None):
+    ensure_db_exists()
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
         conn.execute("UPDATE entries SET content = ?, created_at = ?, tags = COALESCE(?, tags) WHERE id = ?", (content, created_at, tags, entry_id))
         conn.commit()
 
 def delete_entry(entry_id):
+    ensure_db_exists()
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
         conn.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
         conn.commit()

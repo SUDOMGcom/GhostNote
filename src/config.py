@@ -1,7 +1,7 @@
 from pathlib import Path
 import json
 
-DEFAULT_APP_FOLDER = Path.home() / "Documents" / "GhostNote"
+DEFAULT_APP_FOLDER = Path.home() / "AppData" / "Roaming" / "GhostNote"
 DATABASE_CONFIG_FILE = DEFAULT_APP_FOLDER / "database.json"
 
 DEFAULT_SETTINGS = {

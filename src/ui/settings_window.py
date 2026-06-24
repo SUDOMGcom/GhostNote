@@ -305,11 +305,6 @@ class SettingsWindow(tk.Toplevel):
         form.columnconfigure(1, weight=1)
         form.pack(fill=tk.BOTH, expand=True, anchor="nw")
 
-        def browse_app_folder():
-            path = filedialog.askdirectory(initialdir=app_folder_var.get())
-            if path:
-                app_folder_var.set(path)
-
         def browse_db_file():
             path = filedialog.askopenfilename(
                 initialdir=app_folder_var.get(),
@@ -318,9 +313,17 @@ class SettingsWindow(tk.Toplevel):
             if path:
                 db_file_var.set(path)
 
-        ttk.Label(form, text="Application Directory:").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=6)
-        ttk.Entry(form, textvariable=app_folder_var, width=60, state="readonly").grid(row=0, column=1, sticky="w", pady=6)
-        ttk.Button(form, text="Browse", command=browse_app_folder).grid(row=0, column=2, padx=(8, 0), pady=6)
+        def copy_app_folder():
+            self.clipboard_clear()
+            self.clipboard_append(app_folder_var.get())
+
+            copy_button.config(text="✅")
+            self.after(1500, lambda: copy_button.config(text="Copy Path"))
+
+        ttk.Label(form, text="Configuration Directory:").grid(row=0, column=0, sticky="e", padx=(0, 12), pady=6)
+        ttk.Entry(form, textvariable=app_folder_var, width=60, state="disabled").grid(row=0, column=1, sticky="w", pady=6)
+        copy_button = ttk.Button(form, text="Copy Path", command=copy_app_folder)
+        copy_button.grid(row=0, column=2, padx=(8, 0), pady=6)
 
         ttk.Label(form, text="Database Location:").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=6)
         ttk.Entry(form, textvariable=db_file_var, width=60, state="readonly").grid(row=1, column=1, sticky="w", pady=6)
@@ -335,23 +338,21 @@ class SettingsWindow(tk.Toplevel):
         ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
 
         def save_general():
-            app_folder = app_folder_var.get().strip()
             db_file = db_file_var.get().strip()
             theme = theme_var.get()
 
             # SQLite copy = visual/display/settings UI value
-            store.set_setting("general_appfolder", app_folder)
+            store.set_setting("general_appfolder", str(config.DEFAULT_APP_FOLDER))
             store.set_setting("general_dbfile", db_file)
             store.set_setting("general_theme", theme)
 
             # config.json copy = real source of truth for DB location
             settings = config.load_settings()
-            settings["app_folder"] = app_folder
             settings["db_file"] = db_file
             config.save_settings(settings)
 
             config.SETTINGS = config.load_settings()
-            config.APP_FOLDER = Path(config.SETTINGS["app_folder"])
+            config.APP_FOLDER = config.DEFAULT_APP_FOLDER
             config.DB_FILE = Path(config.SETTINGS["db_file"])
             config.THEME = theme
 
