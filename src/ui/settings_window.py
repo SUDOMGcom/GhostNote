@@ -10,28 +10,20 @@ import webbrowser
 class SettingsWindow(tk.Toplevel):
     def __init__(self, parent, start_page="General"):
         super().__init__(parent)
-
+        self.withdraw()
         self.parent = parent
         self.theme = config.get_theme()
         self.nav_buttons = {}
 
         self.title("GhostNote Settings")
-        self.geometry("800x520")
-        self.minsize(800, 520)
-        self.update_idletasks()
-
-        parent_x = parent.winfo_x()
-        parent_y = parent.winfo_y()
-        parent_width = parent.winfo_width()
-        parent_height = parent.winfo_height()
 
         width = 800
         height = 520
 
-        x = parent_x + (parent_width - width) // 2
-        y = parent_y + (parent_height - height) // 2
+        self.geometry(f"{width}x{height}")
+        self.minsize(width, height)
+        self.center_window(parent, width, height)
 
-        self.geometry(f"{width}x{height}+{x}+{y}")
         self.protocol("WM_DELETE_WINDOW", self.close_window)
 
         if hasattr(parent, "window_icon_path") and parent.window_icon_path.exists():
@@ -53,6 +45,8 @@ class SettingsWindow(tk.Toplevel):
         self.apply_theme()
         self.build_layout()
         self.select_page(start_page)
+        self.deiconify()
+        self.lift()
 
     def build_layout(self):
         self.nav_frame = tk.Frame(self, bg=self.theme["panel"], width=180)
@@ -145,6 +139,21 @@ class SettingsWindow(tk.Toplevel):
 
         style.configure("TEntry", fieldbackground=self.theme["entry_bg"], foreground=self.theme["entry_fg"])
         style.map("TEntry", fieldbackground=[("!disabled", self.theme["entry_bg"])])
+
+    def center_window(self, parent=None, width=800, height=520):
+        self.update_idletasks()
+
+        if parent and parent.winfo_exists() and parent.winfo_viewable():
+            x = parent.winfo_x() + (parent.winfo_width() - width) // 2
+            y = parent.winfo_y() + (parent.winfo_height() - height) // 2
+        else:
+            screen_width = self.winfo_screenwidth()
+            screen_height = self.winfo_screenheight()
+
+            x = (screen_width - width) // 2
+            y = (screen_height - height) // 2
+
+        self.geometry(f"{width}x{height}+{x}+{y}")
 
     def rebuild_window(self, page_name="General"):
         for widget in self.winfo_children():
