@@ -17,7 +17,13 @@ class PromptWindow:
         style = ttk.Style()
         style.theme_use("clam")
         style.configure("TCombobox", fieldbackground=theme["entry_bg"], background=theme["panel"], foreground=theme["entry_fg"], arrowcolor=theme["text"], bordercolor=theme["border"], lightcolor=theme["border"], darkcolor=theme["border"])
-        style.map("TCombobox", fieldbackground=[("readonly", theme["entry_bg"])], foreground=[("readonly", theme["entry_fg"])])
+        style.map(
+            "TCombobox",
+            fieldbackground=[("readonly", theme["entry_bg"]), ("focus", theme["entry_bg"]), ("active", theme["entry_bg"]), ],
+            foreground=[("readonly", theme["entry_fg"]),("focus", theme["entry_fg"]),("active", theme["entry_fg"]),],
+            selectbackground=[("readonly", theme["entry_bg"]), ("focus", theme["entry_bg"]),("active", theme["entry_bg"]),],
+            selectforeground=[("readonly", theme["entry_fg"]), ("focus", theme["entry_fg"]), ("active", theme["entry_fg"]),],
+                  )
         self.root.option_add("*TCombobox*Listbox.background", theme["entry_bg"])
         self.root.option_add("*TCombobox*Listbox.foreground", theme["entry_fg"])
         self.root.option_add("*TCombobox*Listbox.selectBackground", theme["panel"])
@@ -89,6 +95,7 @@ class PromptWindow:
             self.category_var = tk.StringVar(value=popup_categories[0])
             category_menu = ttk.Combobox(entry_row, textvariable=self.category_var, values=popup_categories, state="readonly", width=14, style="TCombobox")
             category_menu.pack(side="left", padx=(0, 6))
+            category_menu.bind("<<ComboboxSelected>>", lambda e: e.widget.selection_clear())
 
         entry_border = tk.Frame(entry_row, bg=theme["border"])
         entry_border.pack(side="left", fill="x", expand=True)

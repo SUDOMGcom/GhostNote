@@ -94,6 +94,11 @@ class GhostnoteApp(tk.Tk):
         style.map("TRadiobutton", background=[("active", theme["bg"])], foreground=[("active", theme["text"])])
         style.configure("TEntry", fieldbackground=theme["entry_bg"], foreground=theme["entry_fg"])
         style.map("TEntry", fieldbackground=[("!disabled", theme["entry_bg"])])
+        style.configure("TCombobox", fieldbackground=theme["entry_bg"], background=theme["panel"], foreground=theme["entry_fg"], arrowcolor=theme["text"], bordercolor=theme["border"], lightcolor=theme["border"], darkcolor=theme["border"])
+        self.option_add("*TCombobox*Listbox.background", theme["entry_bg"]); self.option_add("*TCombobox*Listbox.foreground", theme["entry_fg"]); self.option_add("*TCombobox*Listbox.selectBackground", theme["button_hover"]); self.option_add("*TCombobox*Listbox.selectForeground", theme["button_fg"])
+        style.map("TCombobox", fieldbackground=[("readonly", theme["entry_bg"]), ("focus", theme["entry_bg"]), ("active", theme["entry_bg"]), ("!disabled", theme["entry_bg"])], foreground=[("readonly", theme["entry_fg"]), ("focus", theme["entry_fg"]), ("active", theme["entry_fg"]), ("!disabled", theme["entry_fg"])], selectbackground=[("readonly", theme["entry_bg"]), ("focus", theme["entry_bg"]), ("active", theme["entry_bg"])], selectforeground=[("readonly", theme["entry_fg"]), ("focus", theme["entry_fg"]), ("active", theme["entry_fg"])])
+        style.configure("TSpinbox", fieldbackground=theme["entry_bg"], background=theme["panel"], foreground=theme["entry_fg"], arrowcolor=theme["text"], bordercolor=theme["border"], lightcolor=theme["border"], darkcolor=theme["border"])
+        style.map("TSpinbox", fieldbackground=[("readonly", theme["entry_bg"]), ("focus", theme["entry_bg"]), ("active", theme["entry_bg"]), ("!disabled", theme["entry_bg"])], foreground=[("readonly", theme["entry_fg"]), ("focus", theme["entry_fg"]), ("active", theme["entry_fg"]), ("!disabled", theme["entry_fg"])])
         style.configure("Vertical.TScrollbar", background=theme["panel"], troughcolor=theme["bg"], arrowcolor=theme["text"])
         style.map("Vertical.TScrollbar", background=[("active", theme["entry_bg"])])
         style.configure("Active.TButton", background=theme["button_bg"], foreground=theme["active_filter_fg"], padding=(10, 6), borderwidth=0)
@@ -397,7 +402,7 @@ class GhostnoteApp(tk.Tk):
         placeholder_active = True
 
         ttk.Label(form, text="Date").grid(row=0, column=0, sticky="w", padx=(0, 4)); date_entry = DateEntry(form, textvariable=date_var, date_pattern="yyyy-mm-dd", firstweekday="sunday"); date_entry.grid(row=0, column=1, sticky="w", padx=(0, 8))
-        ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_options = [f"{h}:{m:02d} {ampm}" for ampm in ("AM", "PM") for h in range(1, 13) for m in range(0, 60, 5)]; time_entry = ttk.Spinbox(form, textvariable=time_var, values=time_options, width=10); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8)); time_entry.bind("<FocusIn>", lambda e: time_entry.selection_range(0, tk.END))
+        ttk.Label(form, text="Time").grid(row=0, column=2, sticky="w", padx=(0, 4)); time_options = [f"{h}:{m:02d} {ampm}" for ampm in ("AM", "PM") for h in range(1, 13) for m in range(0, 60, 5)]; time_entry = ttk.Spinbox(form, textvariable=time_var, values=time_options, width=10, style="TSpinbox"); time_entry.grid(row=0, column=3, sticky="w", padx=(0, 8)); time_entry.bind("<FocusIn>", lambda e: time_entry.selection_range(0, tk.END))
 
         if popup_categories:
             ttk.Label(form, text="Category").grid(row=1, column=0, sticky="w", padx=(0, 4), pady=(8, 0))
@@ -423,7 +428,7 @@ class GhostnoteApp(tk.Tk):
         note_entry.bind("<KeyPress>", clear_placeholder)
         time_entry.bind("<ButtonRelease-1>", lambda e: self.select_segment(e, time_entry, ": "))
         date_entry.bind("<ButtonRelease-1>", lambda e: self.select_segment(e, date_entry, "-"))
-        date_entry.bind("<Button-1>", lambda e: force_field_focus(date_entry))
+        #date_entry.bind("<Button-1>", lambda e: force_field_focus(date_entry))
         time_entry.bind("<Button-1>", lambda e: force_field_focus(time_entry))
         note_entry.bind("<Button-1>", lambda e: force_field_focus(note_entry))
 
@@ -528,10 +533,8 @@ class GhostnoteApp(tk.Tk):
 
         if categories_enabled:
             ttk.Label(form, text="Category").grid(row=0, column=4, sticky="w", padx=(0, 4))
-
-            if popup_categories: category_entry = ttk.Combobox(form, textvariable=popup.category_var, values=popup_categories, width=18)
+            if popup_categories: category_entry = ttk.Combobox(form, textvariable=popup.category_var, values=popup_categories, state="readonly", width=18, style="TCombobox"); category_entry.bind( "<<ComboboxSelected>>", lambda e: e.widget.selection_clear())
             else: category_entry = ttk.Entry(form, textvariable=popup.category_var, width=18)
-
             category_entry.grid(row=0, column=5, sticky="w")
 
         ttk.Label(form, text="Note").grid(row=1, column=0, sticky="w", pady=(8, 0))
