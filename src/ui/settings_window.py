@@ -15,7 +15,7 @@ class SettingsWindow(tk.Toplevel):
         self.theme = config.get_theme()
         self.nav_buttons = {}
 
-        self.title("GhostNote Settings")
+        self.title(f"{config.APP_VENDOR} {config.APP_NAME} v{config.APP_VERSION} - Settings")
 
         width = 800
         height = 520
@@ -255,14 +255,15 @@ class SettingsWindow(tk.Toplevel):
 
         return scroll_frame
 
-    def page_title(self, title, subtitle=None):
+    def page_title(self, title, subtitle=None, url=None):
         tk.Label(
             self.page_frame,
             text=title,
             bg=self.theme["bg"],
             fg=self.theme["text"],
             font=("Segoe UI", 18, "bold"),
-        ).pack(anchor="w", padx=24, pady=(24, 6))
+            justify="left",
+        ).pack(anchor="w", padx=24, pady=(24, 0))
 
         if subtitle:
             tk.Label(
@@ -273,7 +274,24 @@ class SettingsWindow(tk.Toplevel):
                 font=("Segoe UI", 10),
                 wraplength=580,
                 justify="left",
-            ).pack(anchor="w", padx=24, pady=(0, 18))
+            ).pack(anchor="w", padx=24, pady=(0, 0))
+
+        if url:
+            import webbrowser
+
+            url_label = tk.Label(
+                self.page_frame,
+                text="Visit GhostNote in GitHub",
+                bg=self.theme["bg"],
+                fg="#4da6ff",
+                cursor="hand2",
+                font=("Segoe UI", 10, "underline"),
+            )
+            url_label.pack(anchor="w", padx=24, pady=(0, 0))
+
+            url_label.bind("<Button-1>", lambda e: webbrowser.open(url))
+            url_label.bind("<Enter>", lambda e: url_label.configure(fg="#80c1ff"))
+            url_label.bind("<Leave>", lambda e: url_label.configure(fg="#4da6ff"))
 
     def save_current_page(self):
         command = self.page_save_commands.get(self.current_page)
@@ -298,7 +316,7 @@ class SettingsWindow(tk.Toplevel):
         self.page_title("General", "Basic app settings for GhostNote.")
 
         app_folder_var = tk.StringVar(value=store.get_setting("general_appfolder", ""))
-        db_file_var = tk.StringVar(value=store.get_setting("general_dbfile", ""))
+        db_file_var = tk.StringVar(value=config.load_settings().get("db_file", str(config.DB_FILE)))
         theme_var = tk.StringVar(value=store.get_setting("general_theme", "dark"))
 
         form = ttk.Frame(self.page_frame, padding=(24, 8, 24, 8))
@@ -343,7 +361,6 @@ class SettingsWindow(tk.Toplevel):
 
             # SQLite copy = visual/display/settings UI value
             store.set_setting("general_appfolder", str(config.DEFAULT_APP_FOLDER))
-            store.set_setting("general_dbfile", db_file)
             store.set_setting("general_theme", theme)
 
             # config.json copy = real source of truth for DB location
@@ -360,7 +377,7 @@ class SettingsWindow(tk.Toplevel):
                 self.parent.apply_theme()
 
         self.page_save_commands["General"] = save_general
-        self.page_restore_keys["General"] = ["general_appfolder", "general_dbfile", "general_theme"]
+        self.page_restore_keys["General"] = ["general_appfolder", "general_theme"]
 
     def show_customize_popup_page(self):
         self.clear_content()
@@ -474,12 +491,23 @@ class SettingsWindow(tk.Toplevel):
 
     def show_about_page(self):
         self.clear_content()
-        about_Versiontext = (
-            f"GhostNote by SUDOMG!\n"
-            f"Version: {store.get_setting('about_version', '')}\n"
-            f"URL: {store.get_setting('about_url', '')}"
+        #about_Versiontext = (
+        #    f"{config.APP_NAME} by {config.APP_VENDOR}\n"
+        #    f"Version: v{config.APP_VERSION}\n"
+        #    f"URL: {config.APP_URL}"
+        #)
+
+        about_text = (
+            f"{config.APP_NAME} by {config.APP_VENDOR}\n"
+            f"Version: v{config.APP_VERSION}"
         )
-        self.page_title("About GhostNote/SUDOMG!", about_Versiontext)
+
+        self.page_title(
+            about_text,
+            #about_text,
+            url=config.APP_URL
+        )
+        #self.page_title("About GhostNote/SUDOMG!", about_Versiontext)
 
         about_frame = self.make_scrollable_content()
         about_frame.columnconfigure(0, weight=1)
@@ -574,9 +602,9 @@ class SettingsWindow(tk.Toplevel):
 
         ttk.Label(about_frame, text=about_text, justify="center", wraplength=550).grid(row=5, column=0, padx=20, pady=(0, 20), sticky="ew" )
 
-        url = store.get_setting("about_sudomg_url", "")
-        url_label = tk.Label(about_frame, text=url, fg="#4da6ff", cursor="hand2", bg=self.theme["bg"], font=("Segoe UI", 9, "underline"))
-        url_label.grid(row=6, column=0, pady=(0, 20))
+        url = config.VENDOR_URL
+        url_label = tk.Label(about_frame, text="Visit SUDOMG.com", fg="#4da6ff", cursor="hand2", bg=self.theme["bg"], font=("Segoe UI", 9, "underline"))
+        url_label.grid(row=6, column=0, pady=(0, 20), sticky="ew")
 
         url_label.bind("<Button-1>", lambda e: webbrowser.open(url))
         url_label.bind("<Enter>", lambda e: url_label.configure(fg="#80c1ff"))

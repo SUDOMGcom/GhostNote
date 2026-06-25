@@ -6,7 +6,6 @@ from src.config import APP_FOLDER, DB_FILE
 DEFAULT_DB_SETTINGS = {
     "general_theme": "dark",
     "general_appfolder": str(APP_FOLDER),
-    "general_dbfile": str(DB_FILE),
     "popup_prompt": "What are you working on?",
     "popup_categories_enabled": "false",
     "popup_categories": "",

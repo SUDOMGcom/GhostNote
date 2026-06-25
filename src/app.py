@@ -17,7 +17,7 @@ class GhostnoteApp(tk.Tk):
         super().__init__()
 
         self.attributes("-alpha", 0.0)
-        self.title("SUDOMG! GhostNote")
+        self.title(f"{config.APP_VENDOR} {config.APP_NAME} v{config.APP_VERSION}")
 
         window_width = 900
         window_height = 650
@@ -144,7 +144,7 @@ class GhostnoteApp(tk.Tk):
         text_frame = ttk.Frame(brand_frame)
         text_frame.pack(side=tk.LEFT)
 
-        self.sudomg_label = tk.Label(text_frame, text="SUDOMG!", font=("Segoe UI", 7, "bold"), bg=theme["bg"], fg=theme["muted"])
+        self.sudomg_label = tk.Label(text_frame, text=f"{config.APP_VENDOR}", font=("Segoe UI", 7, "bold"), bg=theme["bg"], fg=theme["muted"])
         self.sudomg_label.pack(anchor="w")
         self.title_frame = tk.Frame(text_frame, bg=theme["bg"])
         self.title_frame.pack(anchor="w", pady=(0, 0))
@@ -164,14 +164,6 @@ class GhostnoteApp(tk.Tk):
         # Right button area
         button_frame = ttk.Frame(header)
         button_frame.pack(side=tk.RIGHT)
-
-        #customize button
-        #customize_frame = ttk.Frame(button_frame, width=100, height=34)
-        #customize_frame.pack_propagate(False)
-        #customize_frame.pack(side=tk.LEFT, padx=4)
-        #customize_button = ttk.Button(customize_frame, text="🛠 Customize", padding=0, command=self.open_customize_modal)
-        #customize_button.pack(fill=tk.BOTH, expand=True)
-        #ToolTip(customize_button, "Customize Popup")
 
         #settings button
         settings_frame = ttk.Frame(button_frame, width=100, height=34)
@@ -782,7 +774,7 @@ class GhostnoteApp(tk.Tk):
         modal.withdraw()
         theme = config.get_theme()
         modal.configure(bg=theme["bg"])
-        modal.title("Filter GhostNote")
+        modal.title(f"{config.APP_VENDOR} {config.APP_NAME} v{config.APP_VERSION} - Filter GhostNote")
         modal_width, modal_height = 420, 175
         modal.iconbitmap(self.window_icon_path)
         self.center_modal(modal, modal_width, modal_height)
@@ -825,7 +817,7 @@ class GhostnoteApp(tk.Tk):
         modal.withdraw()
         theme = config.get_theme()
         modal.configure(bg=theme["bg"])
-        modal.title("Ai Analyze")
+        modal.title(f"{config.APP_VENDOR} {config.APP_NAME} v{config.APP_VERSION} - Ai Analyze")
         modal_width = 400
         modal_height = 300
         modal.iconbitmap(self.window_icon_path)
