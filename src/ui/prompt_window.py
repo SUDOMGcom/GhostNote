@@ -7,6 +7,8 @@ import src.config as config
 from src.sqlite_store import get_setting
 from PIL import Image, ImageTk
 from tkinter import ttk
+from src.ghosty_quotes import get_random_quote
+from src.ui.tooltip import ToolTip
 
 class PromptWindow:
     def __init__(self, on_submit):
@@ -73,6 +75,9 @@ class PromptWindow:
         if icon_path.exists():
             image_label = tk.Label(icon_frame, image=self.icon, bg=theme["bg"])
             image_label.pack(anchor="n", pady=(2, 0))
+
+            self.ghosty_quote = ToolTip(image_label, auto_bind=False, position="above")
+            image_label.bind("<Button-1>", lambda e: self.ghosty_quote.show_for(get_random_quote()))
 
         # Right side - text content
         content_frame = tk.Frame(frame, bg=theme["bg"])
