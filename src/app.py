@@ -209,6 +209,7 @@ class GhostnoteApp(tk.Tk):
         self.entry_table.bind("<<TreeviewSelect>>", self.on_entry_selected)
         self.entry_table.bind("<Button-1>", self.on_entry_left_click, add="+")
         self.entry_table.bind("<Button-3>", self.on_entry_right_click)
+        self.entry_table.bind("<Double-1>", self.on_entry_double_click)
 
         self.load_entries()
 
@@ -331,6 +332,15 @@ class GhostnoteApp(tk.Tk):
             return
 
         self.editGN_button.config(state="normal")
+
+    def on_entry_double_click(self, event):
+        row_id = self.entry_table.identify_row(event.y)
+        if not self.is_entry_row(row_id): return "break"
+
+        self.entry_table.selection_set(row_id)
+        self.entry_table.focus(row_id)
+        self.open_edit_ghostnote_menu()
+        return "break"
 
     def on_entry_left_click(self, event):
         row_id = self.entry_table.identify_row(event.y)
