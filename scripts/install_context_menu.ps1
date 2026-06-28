@@ -1,5 +1,5 @@
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
-$AddEntry = Join-Path $ProjectRoot "src\add_entry.py"
+$MainPath = Join-Path $ProjectRoot "main.py"
 $IconPath = Join-Path $ProjectRoot "assets\icons\GhostNote.ico"
 
 $MenuName = "Add GhostNote"
@@ -12,10 +12,11 @@ Set-ItemProperty -Path $RegistryPath -Name "Icon" -Value $IconPath
 
 New-Item -Path $CommandPath -Force | Out-Null
 
-$Command = "pyw.exe `"$AddEntry`""
+$Python = Join-Path $ProjectRoot ".venv\Scripts\pythonw.exe"
+$Command = "`"$Python`" `"$MainPath`" new"
 
 Set-ItemProperty -Path $CommandPath -Name "(default)" -Value $Command
 
 Write-Output "GhostNote context menu installed."
 Write-Output "Command: $Command"
-Write-Output "AddEntry exists: $(Test-Path $AddEntry)"
+Write-Output "Main exists: $(Test-Path $MainPath)"
