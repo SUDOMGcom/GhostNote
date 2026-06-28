@@ -307,9 +307,14 @@ class GhostnoteApp(tk.Tk):
                 current_parent = self.entry_table.insert("", "end", text=entry_date, values=("", ""), open=first_group)
                 first_group = False
 
-            tags = entry["tags"] or ""
+            tags = (entry["tags"][:27] + "…") if entry["tags"] and len(entry["tags"]) > 28 else (entry["tags"] or "")
             content = f"[{tags}] {entry['content']}" if tags else entry["content"]
             self.entry_table.insert(current_parent, "end", iid=entry["id"], text="", values=(self.format_time(entry["created_at"]), content))
+
+    def truncate_text(self, value, limit=28):
+        if not value:
+            return ""
+        return value if len(value) <= limit else value[:limit - 1] + "…"
 
     def on_entry_selected(self, event=None):
         selected = self.entry_table.selection()
