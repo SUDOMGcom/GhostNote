@@ -89,6 +89,11 @@ def set_setting(key, value):
         conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, str(value)))
         conn.commit()
 
+def get_all_settings():
+    ensure_db_exists()
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        return conn.execute("SELECT key, value FROM settings ORDER BY key").fetchall()
+
 def reset_popup_settings():
     ensure_db_exists()
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
