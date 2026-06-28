@@ -2,7 +2,7 @@ from datetime import datetime
 import sqlite3
 from src.config import APP_FOLDER, DB_FILE
 
-#DB_FILE = APP_FOLDER / "ghostnote.db"
+DB_SCHEMA_VERSION = "1.0"
 DEFAULT_DB_SETTINGS = {
     "general_theme": "dark",
     "general_appfolder": str(APP_FOLDER),
@@ -13,6 +13,24 @@ DEFAULT_DB_SETTINGS = {
     "about_url": "https://github.com/CaseyM915/GhostNote",
     "about_sudomg_url": "https://www.sudomg.com/"
 }
+
+
+def get_schema_version(conn):
+    row = conn.execute("SELECT value FROM metadata WHERE key = 'db_schema_version'").fetchone()
+    return row[0] if row else None
+
+
+def set_schema_version(conn, version):
+    conn.execute("""
+        INSERT INTO metadata (key, value)
+        VALUES ('db_schema_version', ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    """, (str(version),))
+
+
+def run_migrations(conn, current_version):
+    # Future schema migrations go here.
+    pass
 
 
 def ensure_db_exists():
@@ -29,7 +47,29 @@ def ensure_db_exists():
             )
         """)
 
-        conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, default_value TEXT NOT NULL)")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS metadata (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                default_value TEXT
+            )
+        """)
+
+        current_db_schema_version = get_schema_version(conn)
+
+        if current_db_schema_version is None:
+            set_schema_version(conn, DB_SCHEMA_VERSION)
+            conn.execute("INSERT INTO metadata (key, value) VALUES (?, ?)", ("db_created", datetime.now().isoformat(timespec="seconds")))
+        elif current_db_schema_version != DB_SCHEMA_VERSION:
+            run_migrations(conn, current_db_schema_version)
+            set_schema_version(conn, DB_SCHEMA_VERSION)
 
         columns = [row[1] for row in conn.execute("PRAGMA table_info(settings)").fetchall()]
         if "default_value" not in columns: conn.execute("ALTER TABLE settings ADD COLUMN default_value TEXT NOT NULL DEFAULT ''")
@@ -77,6 +117,12 @@ def get_latest_entry_date():
         "SELECT date(created_at) FROM entries ORDER BY created_at DESC LIMIT 1").fetchone()
     return row[0] if row else None
 
+def get_metadata(key, default=None):
+    ensure_db_exists()
+    with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
+        row = conn.execute("SELECT value FROM metadata WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else default
+
 def get_setting(key, default=None):
     ensure_db_exists()
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
@@ -86,7 +132,12 @@ def get_setting(key, default=None):
 def set_setting(key, value):
     ensure_db_exists()
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
-        conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", (key, str(value)))
+        conn.execute("""
+            INSERT INTO settings (key, value, default_value)
+            VALUES (?, ?, NULL)
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value
+        """, (key, str(value)))
         conn.commit()
 
 def get_all_settings():
@@ -127,4 +178,3 @@ def delete_entry(entry_id):
 if __name__ == "__main__":
     set_setting("popup_prompt", "What are you working on?")
     print(get_setting("popup_prompt"))
-

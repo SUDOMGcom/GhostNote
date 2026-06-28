@@ -15,8 +15,8 @@ def launch_new(args=None):
     launch(args)
 
 def show_version(args=None):
-    from src.sqlite_store import get_setting
-    db_schema = get_setting("schema_version")
+    from src.sqlite_store import get_metadata
+    db_schema = get_metadata("db_schema_version", "0.0")
     print(f"{config.APP_NAME} version: {config.APP_VERSION}")
     print(f"Database Schema version: {db_schema}")
 
