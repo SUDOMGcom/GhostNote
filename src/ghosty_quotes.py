@@ -164,3 +164,7 @@ def get_random_quote():
         if quote != _last_quote:
             _last_quote = quote
             return quote
+
+if __name__ == "__main__":
+    for _ in range(10):
+        print(get_random_quote())
