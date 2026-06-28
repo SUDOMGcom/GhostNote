@@ -11,7 +11,8 @@ DEFAULT_DB_SETTINGS = {
     "popup_categories": "",
     "about_version": "1.0",
     "about_url": "https://github.com/CaseyM915/GhostNote",
-    "about_sudomg_url": "https://www.sudomg.com/"
+    "about_sudomg_url": "https://www.sudomg.com/",
+    "general_show_welcome_on_launch": "false"
 }
 
 
@@ -35,6 +36,7 @@ def run_migrations(conn, current_version):
 
 def ensure_db_exists():
     APP_FOLDER.mkdir(parents=True, exist_ok=True)
+    is_new_db = not DB_FILE.exists()
 
     with sqlite3.connect(str(DB_FILE), timeout=5) as conn:
         conn.execute("""
@@ -78,6 +80,8 @@ def ensure_db_exists():
             "INSERT OR IGNORE INTO settings (key, value, default_value) VALUES (?, ?, ?)",
             [(key, value, value) for key, value in DEFAULT_DB_SETTINGS.items()]
         )
+
+        if is_new_db: conn.execute("UPDATE settings SET value = ? WHERE key = ?", ("true", "general_show_welcome_on_launch"))
 
         conn.executemany(
             "UPDATE settings SET default_value = ? WHERE key = ? AND default_value = ''",

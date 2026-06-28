@@ -355,6 +355,30 @@ class SettingsWindow(tk.Toplevel):
         ttk.Radiobutton(theme_button_frame, text="Light", variable=theme_var, value="light").pack(side=tk.LEFT, padx=(0, 10))
         ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
 
+        show_welcome_var = tk.BooleanVar(
+            value=store.get_setting("general_show_welcome_on_launch", "true") == "true"
+        )
+
+        ttk.Label(form, text="Welcome Screen:").grid(row=3, column=0, sticky="e", padx=(0, 12), pady=6)
+
+        welcome_toggle = tk.Button(form, width=10, relief="flat", bd=1, bg=self.theme["button_bg"], fg=self.theme["button_fg"], activeforeground=self.theme["button_fg"], activebackground=self.theme["button_hover"],)
+        welcome_toggle.grid(row=3, column=1, sticky="w", pady=6)
+
+        def update_welcome_state():
+            enabled = show_welcome_var.get()
+            welcome_toggle.config(
+                text="Enabled" if enabled else "Disabled",
+                bg=self.theme["button_bg"] if enabled else "#a62828",
+                activebackground=self.theme["button_hover"] if enabled else "#c03030",
+            )
+
+        def toggle_welcome():
+            show_welcome_var.set(not show_welcome_var.get())
+            update_welcome_state()
+
+        welcome_toggle.config(command=toggle_welcome)
+        update_welcome_state()
+
         def save_general():
             db_file = db_file_var.get().strip()
             theme = theme_var.get()
@@ -362,6 +386,7 @@ class SettingsWindow(tk.Toplevel):
             # SQLite copy = visual/display/settings UI value
             store.set_setting("general_appfolder", str(config.DEFAULT_APP_FOLDER))
             store.set_setting("general_theme", theme)
+            store.set_setting("general_show_welcome_on_launch", "true" if show_welcome_var.get() else "false")
 
             # config.json copy = real source of truth for DB location
             settings = config.load_settings()
@@ -377,7 +402,11 @@ class SettingsWindow(tk.Toplevel):
                 self.parent.apply_theme()
 
         self.page_save_commands["General"] = save_general
-        self.page_restore_keys["General"] = ["general_appfolder", "general_theme"]
+        self.page_restore_keys["General"] = [
+            "general_appfolder",
+            "general_theme",
+            "general_show_welcome_on_launch",
+        ]
 
     def show_customize_popup_page(self):
         self.clear_content()

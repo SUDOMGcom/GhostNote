@@ -9,6 +9,7 @@ from datetime import datetime
 import src.sqlite_store as store
 from src.ui.tooltip import ToolTip
 from src.ui.settings_window import SettingsWindow
+from src.sqlite_store import set_setting, get_setting
 
 class GhostnoteApp(tk.Tk):
     # Section 1 : App Startup / Window Setup
@@ -59,6 +60,12 @@ class GhostnoteApp(tk.Tk):
         self.bind("<Configure>", self.close_edit_menu_on_move, add="+")
         self.apply_theme()
         self.after(10, self.fade_in)
+
+        show_welcome = get_setting("general_show_welcome_on_launch", "false")
+        print(f"{show_welcome}")
+        if show_welcome == "true":
+            print(f"{show_welcome}")
+            self.show_welcome()
 
     def load_icon(self):
         icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
@@ -861,6 +868,110 @@ class GhostnoteApp(tk.Tk):
         ttk.Button(modal, text="Close", command=modal.destroy).place(relx=.5, rely=.95, anchor="s")
 
         modal.deiconify()
+
+    def show_welcome(self):
+        window = tk.Toplevel(self)
+        window.withdraw()
+        theme = config.get_theme()
+        window.title("Welcome to SUDOMG GhostNote")
+        window.transient(self)
+        window.grab_set()
+        window.resizable(False, False)
+        window.configure(bg=theme["panel"])
+        window.iconbitmap(self.window_icon_path)
+
+        width = 515
+        height = 335
+
+        self.update_idletasks()
+        self.center_modal(window, width, height)
+
+        # ---------- Main ----------
+        main = tk.Frame(window, bg=theme["panel"], padx=20, pady=20)
+        main.pack(fill="both", expand=True)
+
+        # ---------- Header ----------
+        header = tk.Frame(main, bg=theme["panel"])
+        header.pack(fill="x", pady=(0, 15))
+
+        ghostyImgPath = Path(__file__).resolve().parents[1] / "assets" / "icons" / "GhostNote.png"
+        ghost = Image.open(ghostyImgPath).resize((89, 70))
+        ghost_img = ImageTk.PhotoImage(ghost)
+        window.ghost_img = ghost_img
+
+        if self.icon:
+            tk.Label(header, image=ghost_img, bg=theme["panel"]).pack(side="left")
+
+        tk.Label(
+            header,
+            text="👻 Welcome to SUDOMG GhostNote!",
+            font=("Segoe UI", 16, "bold"),
+            bg=theme["panel"],
+            fg=theme["text"]
+        ).pack(side="left", fill="y", expand=True)
+
+        # ---------- Body ----------
+        body = tk.Frame(main, bg=theme["panel"])
+        body.pack(fill="both", expand=True)
+
+        tk.Label(
+            body,
+            text="GhostNote helps you capture the work that would otherwise be forgotten.",
+            justify="left",
+            anchor="w",
+            wraplength=460,
+            bg=theme["panel"],
+            fg=theme["text"],
+            font=("Segoe UI", 10)
+        ).pack(anchor="w", pady=(0, 15))
+
+        tips = (
+            "   🖱   Right-click anywhere in your Desktop/File Explorer and choose\n"
+            "               \"Add GhostNote\" to add new entries quickly while you work.\n\n"
+            "   ⌨   Press Ctrl+N anytime in the viewer to create a new GhostNote.\n\n"
+            "   📋   Double-click on any note to edit it."
+        )
+
+        tk.Label(body, text=tips, justify="left", anchor="w", bg=theme["panel"], fg=theme["text"], font=("Segoe UI", 10)).pack(anchor="w")
+
+        # ---------- Bottom ----------
+        footer = tk.Frame(main, bg=theme["panel"])
+        footer.pack(fill="x", pady=(20, 0))
+
+        dont_show = tk.BooleanVar(value=False)
+
+        tk.Checkbutton(
+            footer,
+            text="Don't show this again",
+            variable=dont_show,
+            bg=theme["panel"],
+            fg=theme["text"],
+            activebackground=theme["panel"],
+            activeforeground=theme["text"],
+            selectcolor=theme["panel"],
+            highlightthickness=0,
+            bd=0,
+        ).pack(side="left")
+
+        def close():
+            if dont_show.get():
+                set_setting("general_show_welcome_on_launch", "false")
+            window.destroy()
+
+        ttk.Button(
+            footer,
+            text="Get Started!",
+            command=close
+        ).pack(side="right")
+
+        window.bind("<Return>", lambda e: close())
+        window.bind("<Escape>", lambda e: close())
+
+        window.deiconify()
+        window.lift()
+        window.focus_force()
+
+        window.wait_window()
 
     # Section 7 : Edit popup helpers
 
