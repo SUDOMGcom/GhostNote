@@ -49,6 +49,7 @@ Currently:
 
 ```powershell
 python main.py
+```
 
 ## Install Context Menu
 
