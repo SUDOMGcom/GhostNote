@@ -4,8 +4,9 @@ import json
 APP_NAME = "GhostNote"
 APP_VERSION = "1.0"
 APP_VENDOR = "SUDOMG"
-APP_URL = "https://github.com/CaseyM915/GhostNote"
+APP_URL = "https://sudomg.com/ghostnote/"
 VENDOR_URL = "https://sudomg.com"
+DOWNLOAD_URL = "https://www.github.com/SUDOMGcom/ghostnote/latest"
 
 DEFAULT_APP_FOLDER = Path.home() / "AppData" / "Roaming" / "GhostNote"
 DATABASE_CONFIG_FILE = DEFAULT_APP_FOLDER / "database.json"
