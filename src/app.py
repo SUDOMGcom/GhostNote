@@ -958,11 +958,7 @@ class GhostnoteApp(tk.Tk):
                 set_setting("general_show_welcome_on_launch", "false")
             window.destroy()
 
-        ttk.Button(
-            footer,
-            text="Get Started!",
-            command=close
-        ).pack(side="right")
+        ttk.Button(footer, text="Get Started!", command=close).pack(side="right")
 
         window.bind("<Return>", lambda e: close())
         window.bind("<Escape>", lambda e: close())
@@ -970,7 +966,6 @@ class GhostnoteApp(tk.Tk):
         window.deiconify()
         window.lift()
         window.focus_force()
-
         window.wait_window()
 
     # Section 7 : Edit popup helpers
