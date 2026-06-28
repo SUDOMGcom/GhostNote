@@ -347,22 +347,16 @@ class SettingsWindow(tk.Toplevel):
         ttk.Entry(form, textvariable=db_file_var, width=60, state="readonly").grid(row=1, column=1, sticky="w", pady=6)
         ttk.Button(form, text="Browse", command=browse_db_file).grid(row=1, column=2, padx=(8, 0), pady=6)
 
-        ttk.Label(form, text="Theme:").grid(row=2, column=0, sticky="e", padx=(0, 12), pady=6)
+        show_welcome_var = tk.BooleanVar(value=store.get_setting("general_show_welcome_on_launch", "true") == "true")
+        ttk.Label(form, text="Welcome Screen:").grid(row=2, column=0, sticky="e", padx=(0, 12), pady=6)
+        welcome_toggle = tk.Button(form, width=10, relief="flat", bd=1, bg=self.theme["button_bg"], fg=self.theme["button_fg"], activeforeground=self.theme["button_fg"], activebackground=self.theme["button_hover"],)
+        welcome_toggle.grid(row=2, column=1, sticky="w", pady=6)
 
+        ttk.Label(form, text="Theme:").grid(row=3, column=0, sticky="e", padx=(0, 12), pady=6)
         theme_button_frame = ttk.Frame(form)
-        theme_button_frame.grid(row=2, column=1, sticky="w", pady=6)
-
+        theme_button_frame.grid(row=3, column=1, sticky="w", pady=6)
         ttk.Radiobutton(theme_button_frame, text="Light", variable=theme_var, value="light").pack(side=tk.LEFT, padx=(0, 10))
         ttk.Radiobutton(theme_button_frame, text="Dark", variable=theme_var, value="dark").pack(side=tk.LEFT)
-
-        show_welcome_var = tk.BooleanVar(
-            value=store.get_setting("general_show_welcome_on_launch", "true") == "true"
-        )
-
-        ttk.Label(form, text="Welcome Screen:").grid(row=3, column=0, sticky="e", padx=(0, 12), pady=6)
-
-        welcome_toggle = tk.Button(form, width=10, relief="flat", bd=1, bg=self.theme["button_bg"], fg=self.theme["button_fg"], activeforeground=self.theme["button_fg"], activebackground=self.theme["button_hover"],)
-        welcome_toggle.grid(row=3, column=1, sticky="w", pady=6)
 
         def update_welcome_state():
             enabled = show_welcome_var.get()
@@ -527,7 +521,7 @@ class SettingsWindow(tk.Toplevel):
         #)
 
         about_text = (
-            f"{config.APP_NAME} by {config.APP_VENDOR}\n"
+            f"{config.APP_VENDOR} {config.APP_NAME}\n"
             f"Version: v{config.APP_VERSION}"
         )
 
@@ -556,7 +550,7 @@ class SettingsWindow(tk.Toplevel):
         text_frame = ttk.Frame(brand_frame)
         text_frame.pack(side=tk.LEFT)
 
-        tk.Label(text_frame, text="SUDOMG!", font=("Segoe UI", 7, "bold"), bg=self.theme["bg"], fg=self.theme["muted"]).pack(anchor="w")
+        tk.Label(text_frame, text=config.APP_VENDOR, font=("Segoe UI", 7, "bold"), bg=self.theme["bg"], fg=self.theme["muted"]).pack(anchor="w")
 
         title_frame = tk.Frame(text_frame, bg=self.theme["bg"])
         title_frame.pack(anchor="w")

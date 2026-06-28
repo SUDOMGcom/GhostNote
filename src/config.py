@@ -3,7 +3,7 @@ import json
 
 APP_NAME = "GhostNote"
 APP_VERSION = "1.0"
-APP_VENDOR = "SUDOMG!"
+APP_VENDOR = "SUDOMG"
 APP_URL = "https://github.com/CaseyM915/GhostNote"
 VENDOR_URL = "https://sudomg.com"
 

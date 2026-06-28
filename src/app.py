@@ -16,8 +16,9 @@ class GhostnoteApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        self.withdraw()
 
-        self.attributes("-alpha", 0.0)
+        self.attributes("-alpha", 0)
         self.title(f"{config.APP_VENDOR} {config.APP_NAME} v{config.APP_VERSION}")
 
         window_width = 900
@@ -59,10 +60,13 @@ class GhostnoteApp(tk.Tk):
         self.bind_keyboard_shortcuts()
         self.bind("<Configure>", self.close_edit_menu_on_move, add="+")
         self.apply_theme()
+        self.update_idletasks()
+        self.deiconify()
+
         self.after(10, self.fade_in)
 
         show_welcome = get_setting("general_show_welcome_on_launch", "false")
-        if show_welcome == "true": self.show_welcome()
+        if show_welcome == "true": self.after(300, self.show_welcome)
 
     def load_icon(self):
         icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
@@ -870,7 +874,7 @@ class GhostnoteApp(tk.Tk):
         window = tk.Toplevel(self)
         window.withdraw()
         theme = config.get_theme()
-        window.title("Welcome to SUDOMG GhostNote")
+        window.title(f"Welcome to {config.APP_VENDOR} {config.APP_NAME} - v{config.APP_VERSION}")
         window.transient(self)
         window.grab_set()
         window.resizable(False, False)
@@ -878,7 +882,7 @@ class GhostnoteApp(tk.Tk):
         window.iconbitmap(self.window_icon_path)
 
         width = 515
-        height = 335
+        height = 350
 
         self.update_idletasks()
         self.center_modal(window, width, height)
@@ -901,7 +905,7 @@ class GhostnoteApp(tk.Tk):
 
         tk.Label(
             header,
-            text="👻 Welcome to SUDOMG GhostNote!",
+            text=f"👻 Welcome to {config.APP_VENDOR} {config.APP_NAME}!",
             font=("Segoe UI", 16, "bold"),
             bg=theme["panel"],
             fg=theme["text"]
@@ -913,7 +917,7 @@ class GhostnoteApp(tk.Tk):
 
         tk.Label(
             body,
-            text="GhostNote helps you capture the work that would otherwise be forgotten.",
+            text="Helping you capture the work that would otherwise be invisible.",
             justify="left",
             anchor="w",
             wraplength=460,
@@ -929,6 +933,7 @@ class GhostnoteApp(tk.Tk):
             "   📋   Double-click on any note to edit it."
         )
 
+        tk.Label(body, text="Getting Started:", justify="left", anchor="w", bg=theme["panel"], fg=theme["text"], font=("Segoe UI", 10)).pack(anchor="w", pady=(0, 5))
         tk.Label(body, text=tips, justify="left", anchor="w", bg=theme["panel"], fg=theme["text"], font=("Segoe UI", 10)).pack(anchor="w")
 
         # ---------- Bottom ----------
@@ -962,7 +967,7 @@ class GhostnoteApp(tk.Tk):
 
         window.deiconify()
         window.lift()
-        window.focus_force()
+        window.after(50, window.focus_set)
         window.wait_window()
 
     # Section 7 : Edit popup helpers
