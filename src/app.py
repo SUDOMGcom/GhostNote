@@ -62,10 +62,7 @@ class GhostnoteApp(tk.Tk):
         self.after(10, self.fade_in)
 
         show_welcome = get_setting("general_show_welcome_on_launch", "false")
-        print(f"{show_welcome}")
-        if show_welcome == "true":
-            print(f"{show_welcome}")
-            self.show_welcome()
+        if show_welcome == "true": self.show_welcome()
 
     def load_icon(self):
         icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
