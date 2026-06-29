@@ -1,5 +1,21 @@
+# Python
 __pycache__/
-*.pyc
-Local/
-.idea/
+*.py[cod]
+
+# Virtual environment
 .venv/
+
+# PyInstaller
+build/
+dist/
+
+# Local testing
+Local/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
