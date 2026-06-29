@@ -60,8 +60,13 @@ class SettingsWindow(tk.Toplevel):
         self.logo_container = tk.Frame(self.logo_row, bg=self.theme["panel"])
         self.logo_container.pack(anchor="center")
 
-        if hasattr(self.parent, "icon") and self.parent.icon:
-            self.logo_photo = self.parent.icon
+        settings_icon = Path(__file__).resolve().parents[2] / "assets" / "icons" / "Settings.png"
+
+        if settings_icon.exists():
+            image = Image.open(settings_icon)
+            image.thumbnail((89, 86), Image.LANCZOS)
+            self.logo_photo = ImageTk.PhotoImage(image)
+
             self.logo_label = tk.Label(
                 self.logo_container,
                 image=self.logo_photo,
