@@ -286,7 +286,7 @@ class SettingsWindow(tk.Toplevel):
 
             url_label = tk.Label(
                 self.page_frame,
-                text=url,
+                text="SUDOMG.com/GhostNote",
                 bg=self.theme["bg"],
                 fg="#4da6ff",
                 cursor="hand2",
