@@ -88,12 +88,6 @@ The installer includes:
 
 ---
 
-## Screenshots
-
-*Coming soon.*
-
----
-
 ## Roadmap
 
 GhostNote is intentionally focused on solving one problem well.
