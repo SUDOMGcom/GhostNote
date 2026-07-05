@@ -10,7 +10,7 @@ Instead of tracking productivity, GhostNote focuses on preserving the invisible 
 
 ## Demo
 
-https://github.com/CaseyM915/GhostNote/raw/main/assets/readme/demo.mp4
+https://github.com/CaseyM915/GhostNote/assets/readme/demo.mp4
 
 ---
 ## Capture in Seconds
