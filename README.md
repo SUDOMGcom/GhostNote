@@ -131,6 +131,5 @@ GhostNote **is**:
 
 ## License
 
-Copyright © SUDOMG.
-
-This software is proprietary. All rights reserved.
+GhostNote is proprietary software.
+See the LICENSE file for details.
