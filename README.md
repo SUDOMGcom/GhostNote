@@ -77,7 +77,7 @@ GhostNote is designed to reduce the friction of documenting meaningful work—no
 
 Download the latest Windows installer from the **Releases** page.
 
-*(Link will be added after the repository moves to the SUDOMG organization.)*
+https://github.com/SUDOMGcom/GhostNote/releases/latest/download/SUDOMG-GhostNote-Setup.exe
 
 The installer includes:
 
