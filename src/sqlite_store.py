@@ -10,7 +10,7 @@ DEFAULT_DB_SETTINGS = {
     "popup_categories_enabled": "false",
     "popup_categories": "",
     "about_version": "1.0",
-    "about_url": "https://github.com/CaseyM915/GhostNote",
+    "about_url": "https://github.com/SUDOMGcom/GhostNote",
     "about_sudomg_url": "https://www.sudomg.com/",
     "general_show_welcome_on_launch": "false"
 }
