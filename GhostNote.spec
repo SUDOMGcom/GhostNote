@@ -37,6 +37,7 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=['assets\\icons\\GhostNote.ico'],
+    manifest='GhostNote.manifest',
 )
 coll = COLLECT(
     exe,
