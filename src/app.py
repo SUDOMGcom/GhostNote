@@ -811,9 +811,11 @@ class GhostnoteApp(tk.Tk):
         ttk.Label(form, text="Start Date").grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
         start_entry = DateEntry(form, textvariable=start_var, date_pattern="yyyy-mm-dd", firstweekday="sunday")
         start_entry.grid(row=0, column=1, sticky="w", pady=4)
+        if self.start_date_filter: start_entry.set_date(self.start_date_filter)
         ttk.Label(form, text="End Date").grid(row=0, column=2, sticky="w", padx=(16, 8), pady=4)
         end_entry = DateEntry(form, textvariable=end_var, date_pattern="yyyy-mm-dd", firstweekday="sunday")
         end_entry.grid(row=0, column=3, sticky="w", pady=4)
+        if self.end_date_filter: end_entry.set_date(self.end_date_filter)
 
         def apply_filter():
             self.start_date_filter = start_var.get().strip() or None
@@ -833,7 +835,6 @@ class GhostnoteApp(tk.Tk):
         ttk.Button(button_frame, text="Clear", command=clear_filter).pack(side=tk.LEFT, padx=4)
         modal.bind("<Escape>", lambda event: modal.destroy())
         modal.deiconify()
-        start_entry.focus_force()
 
     def open_ai_modal(self):
         modal = tk.Toplevel(self);
