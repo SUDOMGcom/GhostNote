@@ -320,7 +320,7 @@ class SettingsWindow(tk.Toplevel):
         self.clear_content()
         self.page_title("General", "Basic app settings for GhostNote.")
 
-        app_folder_var = tk.StringVar(value=store.get_setting("general_appfolder", ""))
+        app_folder_var = tk.StringVar(value=str(config.DEFAULT_APP_FOLDER))
         db_file_var = tk.StringVar(value=config.load_settings().get("db_file", str(config.DB_FILE)))
         theme_var = tk.StringVar(value=store.get_setting("general_theme", "dark"))
 
@@ -382,8 +382,7 @@ class SettingsWindow(tk.Toplevel):
             db_file = db_file_var.get().strip()
             theme = theme_var.get()
 
-            # SQLite copy = visual/display/settings UI value
-            store.set_setting("general_appfolder", str(config.DEFAULT_APP_FOLDER))
+            # SQLite-backed general settings
             store.set_setting("general_theme", theme)
             store.set_setting("general_show_welcome_on_launch", "true" if show_welcome_var.get() else "false")
 
@@ -402,7 +401,6 @@ class SettingsWindow(tk.Toplevel):
 
         self.page_save_commands["General"] = save_general
         self.page_restore_keys["General"] = [
-            "general_appfolder",
             "general_theme",
             "general_show_welcome_on_launch",
         ]
