@@ -1,4 +1,5 @@
-$version = (Select-String -Path "..\src\config.py" -Pattern 'APP_VERSION\s*=\s*["'']([^"'']+)["'']').Matches.Groups[1].Value
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$version = (Select-String -Path "$scriptDir\..\src\config.py" -Pattern 'APP_VERSION\s*=\s*["'']([^"'']+)["'']').Matches.Groups[1].Value
 $iscc = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
 
-& $iscc ".\GhostNote.iss" "/DAppVersion=$version"
+& $iscc "$scriptDir\GhostNote.iss" "/DAppVersion=$version"

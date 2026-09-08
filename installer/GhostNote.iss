@@ -40,3 +40,46 @@ Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GhostNote\comman
 
 [Run]
 Filename: "{app}\GhostNote.exe"; Description: "Launch SUDOMG GhostNote"; Flags: nowait postinstall skipifsilent
+
+[Code]
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  OldPath, NewParent, NewPath, ConfigPath: String;
+  OldDbPath, NewDbPath, ConfigText: String;
+  ConfigAnsi: AnsiString;
+begin
+  if CurStep = ssInstall then
+  begin
+    OldPath := ExpandConstant('{userappdata}\GhostNote');
+    NewParent := ExpandConstant('{userappdata}\SUDOMG');
+    NewPath := NewParent + '\GhostNote';
+
+    if DirExists(OldPath) and not DirExists(NewPath) then
+    begin
+      ForceDirectories(NewParent);
+      RenameFile(OldPath, NewPath);
+    end;
+
+    ConfigPath := NewPath + '\database.json';
+
+    if FileExists(ConfigPath) then
+    begin
+      OldDbPath := OldPath + '\ghostnote.db';
+      NewDbPath := NewPath + '\ghostnote.db';
+
+      StringChangeEx(OldDbPath, '\', '\\', True);
+      StringChangeEx(NewDbPath, '\', '\\', True);
+
+      if LoadStringFromFile(ConfigPath, ConfigAnsi) then
+      begin
+        ConfigText := String(ConfigAnsi);
+
+        if StringChangeEx(ConfigText, OldDbPath, NewDbPath, True) > 0 then
+        begin
+          ConfigAnsi := AnsiString(ConfigText);
+          SaveStringToFile(ConfigPath, ConfigAnsi, False);
+        end;
+      end;
+    end;
+  end;
+end;

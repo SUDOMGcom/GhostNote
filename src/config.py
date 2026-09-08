@@ -8,7 +8,7 @@ APP_URL = "https://sudomg.com/ghostnote/"
 VENDOR_URL = "https://sudomg.com"
 DOWNLOAD_URL = "https://www.github.com/SUDOMGcom/ghostnote/latest"
 
-DEFAULT_APP_FOLDER = Path.home() / "AppData" / "Roaming" / "GhostNote"
+DEFAULT_APP_FOLDER = Path.home() / "AppData" / "Roaming" / "SUDOMG" / "GhostNote"
 DATABASE_CONFIG_FILE = DEFAULT_APP_FOLDER / "database.json"
 
 DEFAULT_SETTINGS = {
