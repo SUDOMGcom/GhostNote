@@ -961,7 +961,7 @@ class GhostnoteApp(tk.Tk):
                 set_setting("general_show_welcome_on_launch", "false")
             window.destroy()
 
-        ttk.Button(footer, text="Get Started!", command=close).pack(side="right")
+        tk.Button(footer, text="Get Started!", command=close, font=("Segoe UI", 10), bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_hover"], activeforeground=theme["button_fg"], relief="flat", padx=16, pady=6).pack(side="right")
 
         window.bind("<Return>", lambda e: close())
         window.bind("<Escape>", lambda e: close())
