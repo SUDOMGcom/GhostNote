@@ -39,8 +39,7 @@ Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GhostNote"; Valu
 Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GhostNote\command"; ValueType: string; ValueName: ""; ValueData: """{app}\GhostNote.exe"" new"
 
 [UninstallRun]
-Filename: "powershell.exe"; Parameters: "-NoProfile -NonInteractive -WindowStyle Hidden -Command ""Get-ScheduledTask | Where-Object {{ $_.TaskName -eq 'GhostNote Capture Prompts' }} | Unregister-ScheduledTask -Confirm:$false"""; Flags: runhidden
-
+Filename: "powershell.exe"; Parameters: "-NoProfile -NonInteractive -WindowStyle Hidden -Command ""Get-ScheduledTask | Where-Object {{ $_.TaskName -eq 'GhostNote Capture Prompts' }} | Unregister-ScheduledTask -Confirm:$false"""; Flags: runhidden; RunOnceId: "GhostNoteCapturePromptsTask"
 [Run]
 Filename: "{app}\GhostNote.exe"; Description: "Launch SUDOMG GhostNote"; Flags: nowait postinstall skipifsilent
 
