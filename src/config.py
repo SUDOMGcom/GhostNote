@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 
 APP_NAME = "GhostNote"
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.2.0"
 APP_VENDOR = "SUDOMG"
 APP_URL = "https://sudomg.com/ghostnote/"
 VENDOR_URL = "https://sudomg.com"
