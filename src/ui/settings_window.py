@@ -577,24 +577,28 @@ class SettingsWindow(tk.Toplevel):
 
         def update_preview(*args):
             try:
-                start = int(store.get_setting("schedule_work_start", "08:00").split(":")[0])
-                end = int(store.get_setting("schedule_work_end", "17:00").split(":")[0])
-                interval = int(interval_var.get())
+                start_hour_24 = int(start_hour.get()) % 12 + (12 if start_period.get() == "PM" else 0)
+                end_hour_24 = int(end_hour.get()) % 12 + (12 if end_period.get() == "PM" else 0)
+
+                start_minutes = start_hour_24 * 60 + int(start_minute.get())
+                end_minutes = end_hour_24 * 60 + int(end_minute.get())
+                interval_minutes = int(interval_var.get()) * 60
 
                 times = []
-                hour = start
+                current = start_minutes
 
-                while hour < end:
+                while current < end_minutes:
+                    hour, minute = divmod(current, 60)
                     display_hour = hour % 12 or 12
                     period = "PM" if hour >= 12 else "AM"
-                    times.append(f"{display_hour}:00 {period}")
-                    hour += interval
+                    times.append(f"{display_hour}:{minute:02d} {period}")
+                    current += interval_minutes
 
                 preview_var.set(", ".join(times))
-            except (ValueError, ZeroDivisionError):
+            except ValueError:
                 preview_var.set("")
 
-        interval_var.trace_add("write", update_preview)
+        for var in (start_hour, start_minute, start_period, end_hour, end_minute, end_period, interval_var): var.trace_add("write", update_preview)
         update_preview()
 
         def to_24_hour(hour_var, minute_var, period_var):
