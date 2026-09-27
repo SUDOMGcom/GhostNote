@@ -455,6 +455,8 @@ class SettingsWindow(tk.Toplevel):
 
         scheduling_frame = ttk.Frame(self.page_frame, padding=(24, 16, 24, 8))
         scheduling_frame.pack(fill=tk.BOTH, expand=True, anchor="nw")
+        scheduling_frame.columnconfigure(0, minsize=120)
+        scheduling_frame.columnconfigure(1, minsize=365)
 
         ttk.Label(scheduling_frame, text="Work Hours", font=("Segoe UI", 12, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
 
@@ -519,8 +521,9 @@ class SettingsWindow(tk.Toplevel):
 
             ttk.Label(frame, text=":").pack(side=tk.LEFT, padx=3)
 
-            minute_spin = tk.Spinbox(frame, values=tuple(f"{i:02d}" for i in range(0, 60, 5)), textvariable=minute_var, width=2, wrap=True, bg=self.theme["entry_bg"], fg=self.theme["entry_fg"], buttonbackground=self.theme["panel"], relief="sunken", borderwidth=1, highlightthickness=0)
+            minute_spin = tk.Spinbox(frame, values=tuple(f"{i:02d}" for i in range(0, 60, 5)), width=2, wrap=True, bg=self.theme["entry_bg"], fg=self.theme["entry_fg"], buttonbackground=self.theme["panel"], relief="sunken", borderwidth=1, highlightthickness=0)
             minute_spin.pack(side=tk.LEFT)
+            minute_spin.config(textvariable=minute_var)
 
             def toggle_period(): period_var.set("PM" if period_var.get() == "AM" else "AM")
 
@@ -535,6 +538,9 @@ class SettingsWindow(tk.Toplevel):
         schedule_enabled_var = tk.BooleanVar(value=store.get_setting("schedule_enabled", "false") == "true")
         schedule_type_var = tk.StringVar(value=store.get_setting("schedule_type", "interval"))
         interval_var = tk.StringVar(value=store.get_setting("schedule_interval_hours", "2"))
+        specific_hours = {int(hour) for hour in store.get_setting("schedule_specific_hours", "8,10,12,14,16").split(",") if hour.strip()}
+        specific_minute_var = tk.StringVar(value=store.get_setting("schedule_specific_minute", "00"))
+        specific_period_var = tk.StringVar(value="AM")
 
         ttk.Label(scheduling_frame, text="Scheduled prompts:").grid(row=6, column=0, sticky="e", padx=(0, 12), pady=6)
         schedule_toggle = tk.Button(scheduling_frame, width=10, relief="flat", borderwidth=0, highlightthickness=0, fg=self.theme["button_fg"], activeforeground=self.theme["button_fg"])
@@ -556,27 +562,138 @@ class SettingsWindow(tk.Toplevel):
         type_frame = ttk.Frame(scheduling_frame)
         type_frame.grid(row=7, column=1, sticky="w", pady=6)
 
-        interval_button = tk.Button(type_frame, text="Interval", width=10, relief="flat", borderwidth=0, highlightthickness=0, bg=self.theme["button_bg"], fg=self.theme["button_fg"], activebackground=self.theme["button_hover"], activeforeground=self.theme["button_fg"])
-        interval_button.pack(side=tk.LEFT)
+        interval_border = tk.Frame(type_frame, bg=self.theme["button_bg"], padx=1, pady=1)
+        interval_border.pack(side=tk.LEFT, padx=(0, 4))
+        interval_button = tk.Button(interval_border, text="Interval", width=10, relief="flat", borderwidth=0, highlightthickness=0)
+        interval_button.pack()
 
-        ttk.Label(scheduling_frame, text="Every:").grid(row=8, column=0, sticky="e", padx=(0, 12), pady=6)
+        specific_border = tk.Frame(type_frame, bg=self.theme["button_bg"], padx=1, pady=1)
+        specific_border.pack(side=tk.LEFT)
+        specific_button = tk.Button(specific_border, text="Specific Times", width=12, relief="flat", borderwidth=0, highlightthickness=0)
+        specific_button.pack()
 
         interval_frame = ttk.Frame(scheduling_frame)
-        interval_frame.grid(row=8, column=1, sticky="w", pady=6)
+        specific_frame = ttk.Frame(scheduling_frame)
 
-        interval_spin = tk.Spinbox(interval_frame, from_=1, to=12, textvariable=interval_var, width=2, wrap=True, bg=self.theme["entry_bg"], fg=self.theme["entry_fg"], buttonbackground=self.theme["panel"], relief="sunken", highlightthickness=0)
+        ttk.Label(interval_frame, text="Every:").pack(side=tk.LEFT, padx=(0, 12))
+        interval_spin = tk.Spinbox(interval_frame, from_=1, to=12, textvariable=interval_var, width=2, wrap=True, bg=self.theme["entry_bg"], fg=self.theme["entry_fg"], buttonbackground=self.theme["panel"], relief="sunken", borderwidth=1, highlightthickness=0)
         interval_spin.pack(side=tk.LEFT)
         ttk.Label(interval_frame, text="hours").pack(side=tk.LEFT, padx=(6, 0))
 
-        ttk.Label(scheduling_frame, text="Preview:", foreground=self.theme["muted"]).grid(row=9, column=0, sticky="ne",
-                                                                                          padx=(0, 12), pady=6)
+        period_frame = ttk.Frame(specific_frame)
+        period_frame.pack(side=tk.LEFT, padx=(0, 8))
+
+        period_buttons = []
+
+        def update_period_buttons():
+            for period, button in zip(("AM", "PM"), period_buttons):
+                selected = specific_period_var.get() == period
+                button.config(bg=self.theme["button_bg"] if selected else self.theme["bg"], fg=self.theme["button_fg"] if selected else self.theme["muted"], activebackground=self.theme["button_hover"], activeforeground=self.theme["button_fg"])
+
+        def set_specific_period(period):
+            specific_period_var.set(period)
+            update_period_buttons()
+            update_specific_hour_buttons()
+
+        for period in ("AM", "PM"):
+            button = tk.Button(period_frame, text=period, width=4, relief="flat", borderwidth=0, highlightthickness=0, command=lambda period=period: set_specific_period(period))
+            button.pack(side=tk.LEFT, padx=(0, 4))
+            period_buttons.append(button)
+
+        hours_frame = ttk.Frame(specific_frame)
+        hours_frame.pack(side=tk.LEFT)
+
+        hour_buttons = []
+
+        def hour_24(hour):
+            return hour % 12 + (12 if specific_period_var.get() == "PM" else 0)
+
+        def update_specific_hour_buttons():
+            try:
+                start = (int(start_hour.get()) % 12 + (12 if start_period.get() == "PM" else 0)) * 60 + int(start_minute.get())
+                end = (int(end_hour.get()) % 12 + (12 if end_period.get() == "PM" else 0)) * 60 + int(end_minute.get())
+                minute = int(specific_minute_var.get())
+
+                for hour, button in zip((12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11), hour_buttons):
+                    value = hour_24(hour)
+                    selected = value in specific_hours
+                    available = start <= value * 60 + minute <= end
+
+                    button.config(state="normal" if available else "disabled", bg=self.theme["button_bg"] if selected and available else self.theme["bg"], fg=self.theme["button_fg"] if selected and available else self.theme["muted"], disabledforeground="#555555" if store.get_setting("general_theme", "dark") == "dark" else "#b0b0b0", activebackground=self.theme["button_hover"], activeforeground=self.theme["button_fg"], )
+            except ValueError:
+                pass
+        def toggle_specific_hour(hour):
+            value = hour_24(hour)
+            if value in specific_hours:
+                specific_hours.remove(value)
+            else:
+                specific_hours.add(value)
+            update_specific_hour_buttons()
+            update_preview()
+
+        for index, hour in enumerate((12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)):
+            button = tk.Button(hours_frame, text=str(hour), width=2, relief="flat", borderwidth=0, highlightthickness=0, command=lambda hour=hour: toggle_specific_hour(hour))
+            button.grid(row=0, column=index, padx=(0, 2))
+            hour_buttons.append(button)
+
+        minute_frame = ttk.Frame(scheduling_frame)
+        minute_frame.grid(row=9, column=1, sticky="w", pady=6)
+        minute_spacer = ttk.Frame(scheduling_frame, height=30)
+        ttk.Label(minute_frame, text="Minute:").pack(side=tk.LEFT, padx=(0, 8))
+        minute_spin = tk.Spinbox(minute_frame, values=tuple(f"{i:02d}" for i in range(0, 60, 5)), width=2, wrap=True, bg=self.theme["entry_bg"], fg=self.theme["entry_fg"], buttonbackground=self.theme["panel"], relief="sunken", borderwidth=1, highlightthickness=0)
+        minute_spin.pack(side=tk.LEFT)
+        minute_spin.config(textvariable=specific_minute_var)
+
+        def update_schedule_type():
+            interval_selected = schedule_type_var.get() == "interval"
+
+            interval_button.config(bg=self.theme["button_bg"] if interval_selected else self.theme["bg"], fg=self.theme["button_fg"] if interval_selected else self.theme["button_bg"], activebackground=self.theme["button_hover"], activeforeground=self.theme["button_fg"])
+            specific_button.config(bg=self.theme["button_bg"] if not interval_selected else self.theme["bg"], fg=self.theme["button_fg"] if not interval_selected else self.theme["button_bg"], activebackground=self.theme["button_hover"], activeforeground=self.theme["button_fg"])
+            interval_frame.grid_forget()
+            specific_frame.grid_forget()
+            minute_frame.grid_forget()
+            minute_spacer.grid_forget()
+
+            if interval_selected:
+                interval_frame.grid(row=8, column=1, sticky="w", pady=6)
+                minute_spacer.grid(row=9, column=1, sticky="w")
+            else:
+                specific_frame.grid(row=8, column=1, sticky="w", pady=6)
+                minute_frame.grid(row=9, column=1, sticky="w", pady=6)
+
+            update_preview()
+
+        def set_schedule_type(schedule_type):
+            schedule_type_var.set(schedule_type)
+            update_schedule_type()
+
+        interval_button.config(command=lambda: set_schedule_type("interval"))
+        specific_button.config(command=lambda: set_schedule_type("specific"))
+
+        ttk.Label(scheduling_frame, text="Preview:", foreground=self.theme["muted"]).grid(row=10, column=0, sticky="ne", padx=(0, 12), pady=6)
 
         preview_var = tk.StringVar()
         preview_label = ttk.Label(scheduling_frame, textvariable=preview_var, foreground=self.theme["muted"], wraplength=400, justify="left")
-        preview_label.grid(row=9, column=1, sticky="w", pady=6)
+        preview_label.grid(row=10, column=1, sticky="w", pady=6)
 
         def update_preview(*args):
             try:
+                if schedule_type_var.get() == "specific":
+                    minute = int(specific_minute_var.get())
+                    times = []
+
+                    start = (int(start_hour.get()) % 12 + (12 if start_period.get() == "PM" else 0)) * 60 + int(start_minute.get())
+                    end = (int(end_hour.get()) % 12 + (12 if end_period.get() == "PM" else 0)) * 60 + int(end_minute.get())
+
+                    for hour in sorted(specific_hours):
+                        if not start <= hour * 60 + minute <= end: continue
+                        display_hour = hour % 12 or 12
+                        period = "PM" if hour >= 12 else "AM"
+                        times.append(f"{display_hour}:{minute:02d} {period}")
+
+                    preview_var.set(", ".join(times))
+                    return
+
                 start_hour_24 = int(start_hour.get()) % 12 + (12 if start_period.get() == "PM" else 0)
                 end_hour_24 = int(end_hour.get()) % 12 + (12 if end_period.get() == "PM" else 0)
 
@@ -598,7 +715,11 @@ class SettingsWindow(tk.Toplevel):
             except ValueError:
                 preview_var.set("")
 
-        for var in (start_hour, start_minute, start_period, end_hour, end_minute, end_period, interval_var): var.trace_add("write", update_preview)
+        for var in (start_hour, start_minute, start_period, end_hour, end_minute, end_period, interval_var, specific_minute_var): var.trace_add("write", update_preview)
+        for var in (start_hour, start_minute, start_period, end_hour, end_minute, end_period, specific_minute_var): var.trace_add("write", lambda *_: update_specific_hour_buttons())
+        update_period_buttons()
+        update_specific_hour_buttons()
+        update_schedule_type()
         update_preview()
 
         def to_24_hour(hour_var, minute_var, period_var):
@@ -613,9 +734,11 @@ class SettingsWindow(tk.Toplevel):
             store.set_setting("schedule_enabled", "true" if schedule_enabled_var.get() else "false")
             store.set_setting("schedule_type", schedule_type_var.get())
             store.set_setting("schedule_interval_hours", interval_var.get())
+            store.set_setting("schedule_specific_hours", ",".join(str(hour) for hour in sorted(specific_hours)))
+            store.set_setting("schedule_specific_minute", specific_minute_var.get())
 
         self.page_save_commands["Scheduling"] = save_scheduling
-        self.page_restore_keys["Scheduling"] = ["schedule_work_days", "schedule_work_start", "schedule_work_end", "schedule_enabled", "schedule_type", "schedule_interval_hours",]
+        self.page_restore_keys["Scheduling"] = ["schedule_work_days", "schedule_work_start", "schedule_work_end", "schedule_enabled", "schedule_type", "schedule_interval_hours", "schedule_specific_hours", "schedule_specific_minute"]
 
     def show_integrations_page(self):
         self.clear_content()

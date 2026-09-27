@@ -19,6 +19,8 @@ DEFAULT_DB_SETTINGS = {
     "schedule_enabled": "false",
     "schedule_type": "interval",
     "schedule_interval_hours": "2",
+    "schedule_specific_hours": "8,10,12,14,16",
+    "schedule_specific_minute": "00",
 }
 
 
