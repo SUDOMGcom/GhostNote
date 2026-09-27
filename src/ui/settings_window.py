@@ -37,7 +37,6 @@ class SettingsWindow(tk.Toplevel):
 
         self.page_ignore_buttons = {
             "About",
-            "Scheduling",
             "Integrations",
             "AI Settings",
         }
@@ -124,22 +123,16 @@ class SettingsWindow(tk.Toplevel):
         style.configure("TFrame", background=self.theme["bg"])
         style.configure("TLabel", background=self.theme["bg"], foreground=self.theme["text"])
         style.configure("TButton", background=self.theme["button_bg"], foreground=self.theme["button_fg"], padding=(10, 6), borderwidth=0)
-        style.map(
-            "TButton",
-            background=[
-                ("active", self.theme["button_hover"]),
-                ("pressed", self.theme["button_pressed"]),
-                ("disabled", self.theme["button_disabled"]),
-            ],
-            foreground=[
-                ("active", self.theme["button_fg"]),
-                ("pressed", self.theme["button_fg"]),
-                ("disabled", self.theme["button_disabled_fg"]),
-            ],
-        )
+        style.map("TButton",background=[("active", self.theme["button_hover"]),("pressed", self.theme["button_pressed"]),("disabled", self.theme["button_disabled"]),], foreground=[("active", self.theme["button_fg"]),("pressed", self.theme["button_fg"]),("disabled", self.theme["button_disabled_fg"]),],)
 
         style.configure("TRadiobutton", background=self.theme["bg"], foreground=self.theme["text"])
         style.map("TRadiobutton", background=[("active", self.theme["bg"])], foreground=[("active", self.theme["text"])])
+
+        style.configure("TCheckbutton", background=self.theme["bg"], foreground=self.theme["text"])
+        style.map("TCheckbutton", background=[("active", self.theme["bg"])], foreground=[("active", self.theme["text"])])
+
+        style.configure("TCombobox", fieldbackground=self.theme["entry_bg"], background=self.theme["button_bg"],foreground=self.theme["entry_fg"], arrowcolor=self.theme["button_fg"])
+        style.map("TCombobox", fieldbackground=[("readonly", self.theme["entry_bg"])], foreground=[("readonly", self.theme["entry_fg"])])
 
         style.configure("TEntry", fieldbackground=self.theme["entry_bg"], foreground=self.theme["entry_fg"])
         style.map("TEntry", fieldbackground=[("!disabled", self.theme["entry_bg"])])
@@ -458,7 +451,96 @@ class SettingsWindow(tk.Toplevel):
 
     def show_scheduling_page(self):
         self.clear_content()
-        self.page_title("Scheduling", "Coming Soon: configure when GhostNote should prompt you to capture your work.")
+        self.page_title("Scheduling", "Configure when GhostNote should prompt you to capture your work.")
+
+        scheduling_frame = ttk.Frame(self.page_frame, padding=(24, 16, 24, 8))
+        scheduling_frame.pack(fill=tk.BOTH, expand=True, anchor="nw")
+
+        ttk.Label(scheduling_frame, text="Work Hours", font=("Segoe UI", 12, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
+
+        saved_days = {int(day) for day in store.get_setting("schedule_work_days", "1,2,3,4,5").split(",") if day.strip()}
+        day_vars = [tk.BooleanVar(value=day in saved_days) for day in range(7)]
+
+        days_frame = ttk.Frame(scheduling_frame)
+        days_frame.grid(row=1, column=1, sticky="w", pady=6)
+
+        ttk.Label(scheduling_frame, text="Work days:").grid(row=1, column=0, sticky="e", padx=(0, 12), pady=6)
+
+        day_buttons = []
+
+        def update_day_buttons():
+            for day, button in enumerate(day_buttons):
+                selected = day_vars[day].get()
+                button.config(
+                    bg=self.theme["button_bg"] if selected else self.theme["bg"],
+                    fg=self.theme["button_fg"] if selected else self.theme["muted"],
+                    activebackground=self.theme["button_hover"],
+                    activeforeground=self.theme["button_fg"],
+                )
+
+        def toggle_day(day):
+            day_vars[day].set(not day_vars[day].get())
+            update_day_buttons()
+
+        for day, label in enumerate(("S", "M", "T", "W", "T", "F", "S")):
+            button = tk.Button(
+                days_frame,
+                text=label,
+                width=2,
+                relief="flat",
+                borderwidth=0,
+                highlightthickness=0,
+                command=lambda day=day: toggle_day(day),
+            )
+            button.pack(side=tk.LEFT, padx=(0, 4))
+            day_buttons.append(button)
+
+        update_day_buttons()
+
+        def time_vars(setting, default):
+            hour, minute = map(int, store.get_setting(setting, default).split(":"))
+            return (
+                tk.StringVar(value=str(hour % 12 or 12)),
+                tk.StringVar(value=f"{minute:02d}"),
+                tk.StringVar(value="PM" if hour >= 12 else "AM"),
+            )
+
+        start_hour, start_minute, start_period = time_vars("schedule_work_start", "08:00")
+        end_hour, end_minute, end_period = time_vars("schedule_work_end", "17:00")
+
+        def add_time_row(row, label, hour_var, minute_var, period_var):
+            ttk.Label(scheduling_frame, text=label).grid(row=row, column=0, sticky="e", padx=(0, 12), pady=6)
+
+            frame = ttk.Frame(scheduling_frame)
+            frame.grid(row=row, column=1, sticky="w", pady=6)
+
+            hour_spin = tk.Spinbox(frame, from_=1, to=12, textvariable=hour_var, width=2, wrap=True, bg=self.theme["entry_bg"], fg=self.theme["entry_fg"], buttonbackground=self.theme["panel"], relief="sunken", borderwidth=1, highlightthickness=0)
+            hour_spin.pack(side=tk.LEFT)
+
+            ttk.Label(frame, text=":").pack(side=tk.LEFT, padx=3)
+
+            minute_spin = tk.Spinbox(frame, values=tuple(f"{i:02d}" for i in range(0, 60, 5)), textvariable=minute_var, width=2, wrap=True, bg=self.theme["entry_bg"], fg=self.theme["entry_fg"], buttonbackground=self.theme["panel"], relief="sunken", borderwidth=1, highlightthickness=0)
+            minute_spin.pack(side=tk.LEFT)
+
+            def toggle_period(): period_var.set("PM" if period_var.get() == "AM" else "AM")
+
+            tk.Button(frame, textvariable=period_var, width=4, relief="flat", borderwidth=0, highlightthickness=0, bg=self.theme["button_bg"], fg=self.theme["button_fg"], activebackground=self.theme["button_hover"], activeforeground=self.theme["button_fg"], command=toggle_period).pack(side=tk.LEFT, padx=(6, 0))
+
+        add_time_row(2, "Start time:", start_hour, start_minute, start_period)
+        add_time_row(3, "End time:", end_hour, end_minute, end_period)
+
+        def to_24_hour(hour_var, minute_var, period_var):
+            hour = int(hour_var.get()) % 12
+            if period_var.get() == "PM": hour += 12
+            return f"{hour:02d}:{minute_var.get()}"
+
+        def save_scheduling():
+            store.set_setting("schedule_work_days", ",".join(str(day) for day, var in enumerate(day_vars) if var.get()))
+            store.set_setting("schedule_work_start", to_24_hour(start_hour, start_minute, start_period))
+            store.set_setting("schedule_work_end", to_24_hour(end_hour, end_minute, end_period))
+
+        self.page_save_commands["Scheduling"] = save_scheduling
+        self.page_restore_keys["Scheduling"] = ["schedule_work_days", "schedule_work_start", "schedule_work_end"]
 
     def show_integrations_page(self):
         self.clear_content()
