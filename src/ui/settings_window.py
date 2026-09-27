@@ -713,9 +713,6 @@ class SettingsWindow(tk.Toplevel):
 
         ttk.Label(about_frame,text=about_GNtext,justify="center",wraplength=550).grid(row=1,column=0,padx=20,pady=(0, 20),sticky="ew")
 
-
-
-
         ttk.Separator(about_frame, orient="horizontal").grid(row=2, column=0, sticky="ew", padx=20, pady=20)
         ttk.Label(about_frame, text="The creators of GhostNote: SUDOMG!", font=("Segoe UI", 16, "bold")).grid(row=3, column=0, pady=(0, 15))
 
