@@ -101,6 +101,7 @@ NORMAL_QUOTES = [
     "Tiny improvements. Every day.",
     "Leave things better than you found them.",
     "The second-best time to document it is now.",
+    "What kind of pants do GhostNotes wear? Just a paranormal jeans!"
 ]
 
 RARE_QUOTES = [
@@ -111,7 +112,7 @@ RARE_QUOTES = [
     "Congratulations! Achievement Unlocked: Curiosity.",
     "You clicked Ghosty instead of doing work... I respect that.",
     "Ghosty has been pretending to work this whole time.",
-    "This quote intentionally left undocumented.",
+    "This quote was intentionally left undocumented.",
     "You weren't supposed to see this.",
     "There's no achievement for this... or is there?",
     "01001000 01101001. (Hi.)",
@@ -122,7 +123,7 @@ RARE_QUOTES = [
     "Segmentation fault. (Core dumped.) ...just kidding.",
     "Achievement Unlocked: Professional Button Clicker.",
     "This is your sign to drink some water.",
-    "Remember to stretch. Future You has a back.",
+    "Remember to stretch. Future You has your back.",
     "Plot twist: You were the Easter Egg all along.",
 ]
 
