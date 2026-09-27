@@ -37,8 +37,7 @@ class SettingsWindow(tk.Toplevel):
 
         self.page_ignore_buttons = {
             "About",
-            "Reminders",
-            "Work Hours",
+            "Scheduling",
             "Integrations",
             "AI Settings",
         }
@@ -90,8 +89,7 @@ class SettingsWindow(tk.Toplevel):
         self.pages = {
             "General": self.show_general_page,
             "Customize Popup": self.show_customize_popup_page,
-            "Reminders": self.show_reminders_page,
-            "Work Hours": self.show_work_hours_page,
+            "Scheduling": self.show_scheduling_page,
             "Integrations": self.show_integrations_page,
             "AI Settings": self.show_ai_settings_page,
             "About": self.show_about_page,
@@ -458,34 +456,9 @@ class SettingsWindow(tk.Toplevel):
         self.page_save_commands["Customize Popup"] = save_customize
         self.page_restore_keys["Customize Popup"] = ["popup_prompt", "popup_categories", "popup_categories_enabled"]
 
-
-    def show_reminders_page(self):
+    def show_scheduling_page(self):
         self.clear_content()
-        self.page_title("Reminders", "Coming Soon: configure time-based and idle reminders.")
-
-        reminder_frame = ttk.Frame(self.page_frame, padding=12)
-        reminder_frame.columnconfigure(1, weight=1)
-        reminder_frame.pack(fill=tk.BOTH, expand=True)
-        icon_path = Path(__file__).resolve().parents[2] / "assets" / "teasers" / "Reminders.png"
-        if icon_path.exists():
-            reminder_icon = Image.open(icon_path)
-            reminder_icon = reminder_icon.resize((435, 324), Image.LANCZOS)
-            self.reminder_icon = ImageTk.PhotoImage(reminder_icon)
-            ttk.Label(reminder_frame, image=self.reminder_icon).pack(side=tk.LEFT, padx=(0, 0), expand=True)
-
-    def show_work_hours_page(self):
-        self.clear_content()
-        self.page_title("Work Hours", "Coming Soon: define when GhostNote should prompt you.")
-
-        workHours_frame = ttk.Frame(self.page_frame, padding=12)
-        workHours_frame.columnconfigure(1, weight=1)
-        workHours_frame.pack(fill=tk.BOTH, expand=True)
-        icon_path = Path(__file__).resolve().parents[2] / "assets" / "teasers" / "WorkHours.png"
-        if icon_path.exists():
-            workHours_icon = Image.open(icon_path)
-            workHours_icon = workHours_icon.resize((435, 324), Image.LANCZOS)
-            self.workHours_icon = ImageTk.PhotoImage(workHours_icon)
-            ttk.Label(workHours_frame, image=self.workHours_icon).pack(side=tk.LEFT, padx=(0, 0), expand=True)
+        self.page_title("Scheduling", "Coming Soon: configure when GhostNote should prompt you to capture your work.")
 
     def show_integrations_page(self):
         self.clear_content()
