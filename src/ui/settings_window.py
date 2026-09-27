@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 from src.ui.tooltip import ToolTip
 import src.config as config
 import src.sqlite_store as store
+import src.task_scheduler as task_scheduler
 import webbrowser
 
 class SettingsWindow(tk.Toplevel):
@@ -34,6 +35,7 @@ class SettingsWindow(tk.Toplevel):
         self.page_restore_keys = {}
         self.page_ignore_buttons = set()
         self.restore_state = None
+        self.save_status_after_id = None
 
         self.page_ignore_buttons = {
             "About",
@@ -81,7 +83,7 @@ class SettingsWindow(tk.Toplevel):
         self.page_frame.pack(fill="both", expand=True)
 
         self.footer_frame = ttk.Frame(self.content_frame)
-        self.footer_frame.pack(fill="x", pady=12)
+        self.footer_frame.pack(fill="x", pady=(0, 10))
 
         self.build_footer_buttons()
 
@@ -164,6 +166,11 @@ class SettingsWindow(tk.Toplevel):
         self.select_page(page_name)
 
     def build_footer_buttons(self):
+        self.status_frame = ttk.Frame(self.footer_frame)
+        self.status_frame.pack()
+        self.save_status = ttk.Label(self.status_frame, text="")
+        self.save_status.pack(side=tk.LEFT)
+        self.save_status_info = ttk.Label(self.status_frame, text=" ⓘ", foreground=self.theme["muted"], cursor="hand2")
         self.footer_button_frame = ttk.Frame(self.footer_frame)
         self.footer_button_frame.pack()
         self.save_button = ttk.Button(self.footer_button_frame, text="Save", command=self.save_current_page)
@@ -204,7 +211,7 @@ class SettingsWindow(tk.Toplevel):
         if hidden: self.footer_frame.pack_forget()
         else:
             if not self.footer_frame.winfo_manager():
-                self.footer_frame.pack(fill="x", pady=12)
+                self.footer_frame.pack(fill="x", pady=(0, 10))
 
     def close_window(self):
         self.destroy()
@@ -252,15 +259,16 @@ class SettingsWindow(tk.Toplevel):
 
         return scroll_frame
 
-    def page_title(self, title, subtitle=None, url=None):
-        tk.Label(
-            self.page_frame,
-            text=title,
-            bg=self.theme["bg"],
-            fg=self.theme["text"],
-            font=("Segoe UI", 18, "bold"),
-            justify="left",
-        ).pack(anchor="w", padx=24, pady=(24, 0))
+    def page_title(self, title, subtitle=None, url=None, info=None):
+        title_frame = tk.Frame(self.page_frame, bg=self.theme["bg"])
+        title_frame.pack(anchor="w", padx=24, pady=(24, 0))
+
+        tk.Label(title_frame, text=title, bg=self.theme["bg"], fg=self.theme["text"], font=("Segoe UI", 18, "bold"), justify="left", ).pack(side=tk.LEFT)
+
+        if info:
+            info_label = tk.Label(title_frame, text=" ⓘ", bg=self.theme["bg"], fg=self.theme["muted"], cursor="hand2", font=("Segoe UI", 11))
+            info_label.pack(side=tk.LEFT, padx=(4, 0))
+            ToolTip(info_label, info)
 
         if subtitle:
             tk.Label(
@@ -293,20 +301,79 @@ class SettingsWindow(tk.Toplevel):
     def save_current_page(self):
         command = self.page_save_commands.get(self.current_page)
         if command:
-            command()
+            self.save_status.config(text="")
+            self.update()
+
+            self.save_status.config(text="Saving...")
+            self.update()
+
+            result = command() or "Saved successfully."
+            message, info = result if isinstance(result, tuple) else (result, None)
+
             self.rebuild_window(self.current_page)
+            self.after_idle(lambda: self.show_save_status(message, info))
+
+    def show_save_status(self, message, info=None):
+        if self.save_status_after_id:
+            self.after_cancel(self.save_status_after_id)
+            self.save_status_after_id = None
+        self.save_status.config(text=message, foreground="#e05252" if info else self.theme["text"], font=("Segoe UI", 9, "bold") if info else ("Segoe UI", 9))
+        self.save_status_info.pack_forget()
+
+        if info:
+            self.save_status_info.config(foreground="#e05252")
+            self.save_status_info.pack(side=tk.LEFT, padx=(4, 0))
+            ToolTip(self.save_status_info, info)
+        else:
+            self.save_status_after_id = self.after(7000, self.clear_save_status)
+
+    def clear_save_status(self):
+        self.save_status_after_id = None
+        self.save_status.config(text="")
+        self.save_status_info.pack_forget()
 
     def restore_current_page(self):
         keys = self.page_restore_keys.get(self.current_page)
         if keys:
+            self.save_status.config(text="Restoring Defaults...")
+            self.update_idletasks()
+
             store.restore_default_settings(keys)
+
+            scheduler_error = False
+
+            if self.current_page == "Scheduling":
+                try: task_scheduler.remove_task()
+                except Exception: scheduler_error = True
+
             self.restore_state = None
             self.rebuild_window(self.current_page)
 
+            if scheduler_error:
+                scheduler_help = "Scheduling troubleshooting\n\nTry restoring defaults again. If the problem continues, make sure Windows Task Scheduler is available and allowed on this computer.\n\nThe GhostNote settings were restored, but you may need to manually remove the task from Windows Task Scheduler.\n\nTask name: GhostNote Capture Prompts"
+                self.after_idle(lambda: self.show_save_status("Defaults restored, but the Windows task could not be removed. Try again.", scheduler_help))
+            else:
+                self.after_idle(lambda: self.show_save_status("Defaults restored successfully."))
+
     def restore_all_defaults(self):
+        self.save_status.config(text="Restoring All Defaults...")
+        self.update_idletasks()
+
         store.restore_default_settings()
+
+        scheduler_error = False
+
+        try: task_scheduler.remove_task()
+        except Exception: scheduler_error = True
+
         self.restore_state = None
         self.rebuild_window(self.current_page)
+
+        if scheduler_error:
+            scheduler_help = "Scheduling troubleshooting\n\nTry restoring defaults again. If the problem continues, make sure Windows Task Scheduler is available and allowed on this computer.\n\nThe GhostNote settings were restored, but you may need to manually remove the task from Windows Task Scheduler.\n\nTask name: GhostNote Capture Prompts"
+            self.after_idle(lambda: self.show_save_status("All defaults restored, but the Windows task could not be removed. Try again.", scheduler_help))
+        else:
+            self.after_idle(lambda: self.show_save_status("All defaults restored successfully."))
 
     def show_general_page(self):
         self.clear_content()
@@ -452,8 +519,7 @@ class SettingsWindow(tk.Toplevel):
 
     def show_scheduling_page(self):
         self.clear_content()
-        self.page_title("Scheduling", "Configure when GhostNote should prompt you to capture your work.")
-
+        self.page_title("Scheduling", "Configure when GhostNote should prompt you to capture your work.", info="How scheduling works\n\nGhostNote uses Windows Task Scheduler to launch capture prompts at your configured times. Enabling Capture Prompts creates a Windows scheduled task; disabling them removes it.\n\nTask name: GhostNote Capture Prompts", )
         scheduling_frame = ttk.Frame(self.page_frame, padding=(24, 16, 24, 8))
         scheduling_frame.pack(fill=tk.BOTH, expand=True, anchor="nw")
         scheduling_frame.columnconfigure(0, minsize=120)
@@ -489,6 +555,7 @@ class SettingsWindow(tk.Toplevel):
         def toggle_day(day):
             day_vars[day].set(not day_vars[day].get())
             update_day_buttons()
+            update_preview()
 
         for day, label in enumerate(("S", "M", "T", "W", "T", "F", "S")):
             button = tk.Button(
@@ -750,6 +817,11 @@ class SettingsWindow(tk.Toplevel):
                 work_hours_enabled = work_hours_enabled_var.get()
 
                 if work_hours_enabled:
+                    if not any(var.get() for var in day_vars):
+                        self.save_button.config(state="disabled")
+                        preview_var.set("Select at least one work day.")
+                        return
+
                     start = (int(start_hour.get()) % 12 + (12 if start_period.get() == "PM" else 0)) * 60 + int(start_minute.get())
                     end = (int(end_hour.get()) % 12 + (12 if end_period.get() == "PM" else 0)) * 60 + int(end_minute.get())
 
@@ -757,6 +829,11 @@ class SettingsWindow(tk.Toplevel):
                         self.save_button.config(state="disabled")
                         preview_var.set("End time must be after start time.")
                         return
+
+                if schedule_type_var.get() == "specific" and not specific_hours:
+                    self.save_button.config(state="disabled")
+                    preview_var.set("Select at least one capture time.")
+                    return
 
                 self.save_button.config(state="normal")
 
@@ -814,15 +891,64 @@ class SettingsWindow(tk.Toplevel):
             return f"{hour:02d}:{minute_var.get()}"
 
         def save_scheduling():
-            store.set_setting("schedule_work_hours_enabled", "true" if work_hours_enabled_var.get() else "false")
+            work_hours_enabled = work_hours_enabled_var.get()
+            schedule_enabled = schedule_enabled_var.get()
+            scheduler_help = "Scheduling troubleshooting\n\nTry saving again. If the problem continues, make sure Windows Task Scheduler is available and allowed on this computer.\n\nIf Capture Prompts were disabled but the task could not be removed, you can manually remove it from Windows Task Scheduler.\n\nTask name: GhostNote Capture Prompts"
+
+            store.set_setting("schedule_work_hours_enabled", "true" if work_hours_enabled else "false")
             store.set_setting("schedule_work_days", ",".join(str(day) for day, var in enumerate(day_vars) if var.get()))
             store.set_setting("schedule_work_start", to_24_hour(start_hour, start_minute, start_period))
             store.set_setting("schedule_work_end", to_24_hour(end_hour, end_minute, end_period))
-            store.set_setting("schedule_enabled", "true" if schedule_enabled_var.get() else "false")
+            store.set_setting("schedule_enabled", "true" if schedule_enabled else "false")
             store.set_setting("schedule_type", schedule_type_var.get())
             store.set_setting("schedule_interval_hours", interval_var.get())
             store.set_setting("schedule_specific_hours", ",".join(str(hour) for hour in sorted(specific_hours)))
             store.set_setting("schedule_specific_minute", specific_minute_var.get())
+
+            if not schedule_enabled:
+                try:
+                    task_scheduler.remove_task()
+                    return f"Schedule saved successfully. Windows scheduled task removed: {task_scheduler.TASK_NAME}"
+                except Exception:
+                    return "Schedule saved, but the Windows task could not be removed. Try saving again.", scheduler_help
+
+            if schedule_type_var.get() == "specific":
+                minute = int(specific_minute_var.get())
+                times = []
+
+                for hour in sorted(specific_hours):
+                    prompt_minutes = hour * 60 + minute
+
+                    if work_hours_enabled:
+                        start = (int(start_hour.get()) % 12 + (12 if start_period.get() == "PM" else 0)) * 60 + int(start_minute.get())
+                        end = (int(end_hour.get()) % 12 + (12 if end_period.get() == "PM" else 0)) * 60 + int(end_minute.get())
+                        if not start <= prompt_minutes <= end: continue
+
+                    times.append(f"{hour:02d}:{minute:02d}")
+
+            else:
+                if work_hours_enabled:
+                    start_minutes = (int(start_hour.get()) % 12 + (12 if start_period.get() == "PM" else 0)) * 60 + int(start_minute.get())
+                    end_minutes = (int(end_hour.get()) % 12 + (12 if end_period.get() == "PM" else 0)) * 60 + int(end_minute.get())
+                else:
+                    start_minutes = 0
+                    end_minutes = 24 * 60
+
+                interval_minutes = int(interval_var.get()) * 60
+                times = []
+                current = start_minutes
+
+                while current < end_minutes:
+                    hour, minute = divmod(current, 60)
+                    times.append(f"{hour:02d}:{minute:02d}")
+                    current += interval_minutes
+
+            work_days = [day for day, var in enumerate(day_vars) if var.get()] if work_hours_enabled else None
+            try:
+                task_scheduler.update_task(times, work_days)
+                return f"Schedule saved successfully. Windows scheduled task updated: {task_scheduler.TASK_NAME}"
+            except Exception:
+                return "Schedule saved, but the Windows task could not be updated. Try saving again.", scheduler_help
 
         self.page_save_commands["Scheduling"] = save_scheduling
         self.page_restore_keys["Scheduling"] = ["schedule_work_hours_enabled", "schedule_work_days", "schedule_work_start", "schedule_work_end", "schedule_enabled", "schedule_type", "schedule_interval_hours", "schedule_specific_hours", "schedule_specific_minute"]

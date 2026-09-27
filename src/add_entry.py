@@ -9,10 +9,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.sqlite_store import add_entry
 from src.ui.prompt_window import PromptWindow
 
-def handle_submit(note_text, tags=""):
-    add_entry(note_text, source="Right-Click", tags=tags)
+def launch(args=None, source="Right-Click"):
+    def handle_submit(note_text, tags=""):
+        add_entry(note_text, source=source, tags=tags)
 
-def launch(args=None):
     app = PromptWindow(handle_submit)
     app.run()
 

@@ -11,6 +11,10 @@ def launch_new(args=None):
     from src.add_entry import launch
     launch(args)
 
+def launch_scheduled(args=None):
+    from src.add_entry import launch
+    launch(args, source="Scheduled")
+
 def show_version(args=None):
     from src.sqlite_store import get_metadata
     db_schema = get_metadata("db_schema_version", "0.0")
@@ -108,6 +112,7 @@ def main():
 
     commands = {
         "new": launch_new,
+        "scheduled": launch_scheduled,
         "settings": show_settings,
         "version": show_version,
         "viewer" : launch_viewer,
