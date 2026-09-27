@@ -13,6 +13,7 @@ DEFAULT_DB_SETTINGS = {
     "about_url": "https://github.com/SUDOMGcom/GhostNote",
     "about_sudomg_url": "https://www.sudomg.com/",
     "general_show_welcome_on_launch": "false",
+    "schedule_work_hours_enabled": "false",
     "schedule_work_days": "1,2,3,4,5",
     "schedule_work_start": "08:00",
     "schedule_work_end": "17:00",
