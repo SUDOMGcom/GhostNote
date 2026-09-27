@@ -15,42 +15,15 @@ class ToolTip:
             widget.bind("<Leave>", self.hide_tooltip)
 
     def show_tooltip(self, event=None, text=None):
-        if text is not None:
-            self.text = text
-
-        if self.tooltip:
-            self.hide_tooltip()
+        if text is not None: self.text = text
+        if self.tooltip: self.hide_tooltip()
 
         self.tooltip = tk.Toplevel(self.widget)
         self.tooltip.wm_overrideredirect(True)
         self.tooltip.attributes("-topmost", True)
 
-        if self.position == "above":
-            label = tk.Label(
-                self.tooltip,
-                text=self.text,
-                bg="#2b2b2b",
-                fg="white",
-                relief="flat",
-                bd=0,
-                padx=10,
-                pady=6,
-                font=("Segoe UI", 9),
-                wraplength=280,
-                justify="left",
-            )
-        else:
-            label = tk.Label(
-                self.tooltip,
-                text=self.text,
-                bg="#222",
-                fg="white",
-                relief="solid",
-                borderwidth=1,
-                font=("Segoe UI", 9),
-                padx=6,
-                pady=2,
-            )
+        if self.position == "above": label = tk.Label(self.tooltip, text=self.text, bg="#2b2b2b", fg="white", relief="flat", bd=0, padx=10, pady=6, font=("Segoe UI", 9), wraplength=280, justify="left", )
+        else: label = tk.Label(self.tooltip, text=self.text, bg="#222", fg="white", relief="solid", borderwidth=1, font=("Segoe UI", 9), padx=6, pady=4, wraplength=280, justify="left", )
         label.pack()
 
         self.tooltip.update_idletasks()
