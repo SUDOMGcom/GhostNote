@@ -15,7 +15,10 @@ DEFAULT_DB_SETTINGS = {
     "general_show_welcome_on_launch": "false",
     "schedule_work_days": "1,2,3,4,5",
     "schedule_work_start": "08:00",
-    "schedule_work_end": "17:00"
+    "schedule_work_end": "17:00",
+    "schedule_enabled": "false",
+    "schedule_type": "interval",
+    "schedule_interval_hours": "2",
 }
 
 
