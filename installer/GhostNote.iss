@@ -40,6 +40,7 @@ Root: HKA; Subkey: "Software\Classes\Directory\Background\shell\GhostNote\comman
 
 [UninstallRun]
 Filename: "powershell.exe"; Parameters: "-NoProfile -NonInteractive -WindowStyle Hidden -Command ""Get-ScheduledTask | Where-Object {{ $_.TaskName -eq 'GhostNote Capture Prompts' }} | Unregister-ScheduledTask -Confirm:$false"""; Flags: runhidden; RunOnceId: "GhostNoteCapturePromptsTask"
+
 [Run]
 Filename: "{app}\GhostNote.exe"; Description: "Launch SUDOMG GhostNote"; Flags: nowait postinstall skipifsilent
 
