@@ -801,11 +801,11 @@ class SettingsWindow(tk.Toplevel):
         interval_button.config(command=lambda: set_schedule_type("interval"))
         specific_button.config(command=lambda: set_schedule_type("specific"))
 
-        ttk.Label(scheduling_frame, text="Preview:", foreground=self.theme["muted"]).grid(row=9, column=0, sticky="ne", padx=(0, 12), pady=(18, 6))
+        ttk.Label(scheduling_frame, text="Preview:", foreground=self.theme["muted"]).grid(row=9, column=0, sticky="ne", padx=(0, 12), pady=(18, 0))
 
         preview_var = tk.StringVar()
         preview_label = ttk.Label(scheduling_frame, textvariable=preview_var, foreground=self.theme["muted"], wraplength=400, justify="left")
-        preview_label.grid(row=9, column=1, sticky="w", pady=(18, 6))
+        preview_label.grid(row=9, column=1, sticky="w", pady=(18, 0))
 
         def update_preview(*args):
             try:
